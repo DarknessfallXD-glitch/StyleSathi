@@ -1,7 +1,32 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
+import { useRouter } from 'expo-router';
 
 export default function SplashScreen() {
+  const router = useRouter();
+  const [progress] = useState(new Animated.Value(0));
+
+  useEffect(() => {
+    // Animate progress bar from 0 to 100% over 2.5 seconds
+    Animated.timing(progress, {
+      toValue: 100,
+      duration: 2500,
+      useNativeDriver: false,
+    }).start();
+
+    // Navigate to welcome page after 2.5 seconds
+    const timer = setTimeout(() => {
+      router.replace('/welcome');
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const width = progress.interpolate({
+    inputRange: [0, 100],
+    outputRange: ['0%', '100%'],
+  });
+
   return (
     <View style={styles.container}>
       <View style={styles.center}>
@@ -15,6 +40,11 @@ export default function SplashScreen() {
         <View style={styles.divider} />
 
         <Text style={styles.loading}>INITIALIZING AI STUDIO...</Text>
+        
+        {/* Progress Bar */}
+        <View style={styles.progressBarContainer}>
+          <Animated.View style={[styles.progressBar, { width }]} />
+        </View>
       </View>
 
       <Text style={styles.footer}>POWERED BY SATHY</Text>
@@ -26,7 +56,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F4F4F4',
-    justifyContent: 'center', // true vertical center
+    justifyContent: 'center',
     alignItems: 'center',
   },
   center: {
@@ -66,10 +96,24 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#999',
     letterSpacing: 1,
+    marginBottom: 12,
+  },
+  progressBarContainer: {
+    width: 200,
+    height: 2,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 1,
+    overflow: 'hidden',
+    marginTop: 8,
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: '#2F343A',
+    borderRadius: 1,
   },
   footer: {
     position: 'absolute',
-    bottom: 40, // keeps it at bottom while rest stays centered
+    bottom: 40,
     fontSize: 10,
     color: '#999',
     letterSpacing: 1,
