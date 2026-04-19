@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "StyleSathi",
-    "slug": "StyleSathi",
+    "slug": "stylesathi",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -39,6 +39,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6728c875-2323-48eb-aa06-942f67c6ba7d"
+      }
+    },
+    "owner": "darknessfallxd"
   }
 }
