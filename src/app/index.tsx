@@ -16,7 +16,7 @@ export default function SplashScreen() {
 
     // Navigate to welcome page after 2.5 seconds
     const timer = setTimeout(() => {
-      router.replace('/welcome');
+      router.replace('/welcome');  // This will go to your welcome page
     }, 2500);
 
     return () => clearTimeout(timer);
