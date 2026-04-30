@@ -55,7 +55,7 @@ export default function StylePreferenceScreen() {
     
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <TouchableOpacity onPress={() => router.replace('./personalize1')}>
+          <TouchableOpacity onPress={() => router.replace('./upload')}>
             <Text style={styles.back}>←</Text>
                     </TouchableOpacity>
                <Text style={styles.stepText}>STEP 3 OF 4</Text>
