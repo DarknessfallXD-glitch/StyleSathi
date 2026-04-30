@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -12,6 +13,84 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 export default function LanguageScreen() {
   const router = useRouter();
   const [selectedLanguage, setSelectedLanguage] = useState('nepali');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Helper functions to get data from previous steps
+  const getProfilePhoto = () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('profilePhoto');
+    }
+    return null;
+  };
+
+  const getSelectedStyles = () => {
+    if (typeof window !== 'undefined') {
+      const styles = localStorage.getItem('selectedStyles');
+      return styles ? JSON.parse(styles) : [];
+    }
+    return [];
+  };
+
+  const handleContinue = async () => {
+    setIsLoading(true);
+    
+    // COLLECT ALL USER PREFERENCES IN JSON FORMAT
+    const userPreferences = {
+      // Step 1: Camera/Photo
+      profilePhoto: getProfilePhoto(),
+      
+      // Step 3: Style Preferences  
+      selectedStyles: getSelectedStyles(),
+      
+      // Step 4: Language
+      selectedLanguage: selectedLanguage,
+      
+      // Metadata
+      onboardingCompleted: true,
+      completedAt: new Date().toISOString(),
+      deviceInfo: {
+        platform: 'react-native',
+        appVersion: '1.0.0',
+      },
+    };
+    
+    // LOG THE JSON - This is what you send to backend
+    console.log('========== USER PREFERENCES JSON ==========');
+    console.log(JSON.stringify(userPreferences, null, 2));
+    console.log('===========================================');
+    
+    // Show summary to user
+    Alert.alert(
+      'Preferences Saved',
+      `Language: ${selectedLanguage === 'nepali' ? 'नेपाली' : 'English'}\nStyles: ${getSelectedStyles().join(', ') || 'None selected'}\n\nCheck console for full JSON`,
+      [{ text: 'OK' }]
+    );
+    
+    // TODO: Send to backend API
+    // Uncomment when backend is ready:
+    /*
+    try {
+      const response = await fetch('YOUR_BACKEND_URL/api/user/preferences', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userPreferences),
+      });
+      
+      if (response.ok) {
+        console.log('Successfully sent to backend');
+      }
+    } catch (error) {
+      console.error('Backend error:', error);
+    }
+    */
+    
+    setIsLoading(false);
+    
+    // Navigate to home/welcome
+    router.replace('./welcome');
+  };
 
   const languages = [
     { id: 'nepali', name: 'नेपाली', subtitle: 'Nepali' },
@@ -24,18 +103,19 @@ export default function LanguageScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-         <TouchableOpacity onPress={() => router.replace('./style')}>
-                    <Text style={styles.back}>←</Text>
-                            </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.replace('./style')}>
+          <Text style={styles.back}>←</Text>
+        </TouchableOpacity>
+        
         {/* Step Indicator */}
         <Text style={styles.stepText}>STEP 4 OF 4</Text>
 
         {/* Progress Bar */}
-       <View style={styles.progressRow}>
-        <View style={styles.progressDot} />
-        <View style={styles.progressDot} />
-        <View style={styles.progressDot} />
-        <View style={styles.progressActive} />
+        <View style={styles.progressRow}>
+          <View style={styles.progressDot} />
+          <View style={styles.progressDot} />
+          <View style={styles.progressDot} />
+          <View style={styles.progressActive} />
         </View>
 
         {/* Language Icons Row */}
@@ -91,11 +171,14 @@ export default function LanguageScreen() {
 
         {/* Continue Button */}
         <TouchableOpacity 
-          style={styles.continueButton}
-          onPress={() => router.replace('./welcome')} /* Configuration needs to be done here*/
+          style={[styles.continueButton, isLoading && styles.buttonDisabled]}
+          onPress={handleContinue}
           activeOpacity={0.8}
+          disabled={isLoading}
         >
-          <Text style={styles.continueButtonText}>Continue</Text>
+          <Text style={styles.continueButtonText}>
+            {isLoading ? 'Saving...' : 'Continue'}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -182,7 +265,7 @@ const styles = StyleSheet.create({
   },
 
   languageCard: {
-    height:145,
+    height: 145,
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
     borderColor: '#E5E5E5',
@@ -243,17 +326,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
+  buttonDisabled: {
+    backgroundColor: '#FFB3C1',
+  },
+
   continueButtonText: {
     color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 16,
   },
 
-   back: {
+  back: {
     fontSize: 28,
     color: '#333',
     marginLeft: 10,
     marginTop: -5,
-    marginBottom:20
+    marginBottom: 20,
   },
 });

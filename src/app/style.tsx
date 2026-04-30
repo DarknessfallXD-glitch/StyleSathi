@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { Animated } from 'react-native';
 import { useRef } from 'react';
 import {
@@ -14,7 +14,11 @@ import { useRouter } from 'expo-router';
 export default function StylePreferenceScreen() {
   const router = useRouter();
  const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
-
+    useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('selectedStyles', JSON.stringify(selectedStyles));
+    }
+  }, [selectedStyles]);
   const stylesList = [
         {
     id: 'traditional',
