@@ -7,16 +7,17 @@ import {
   Image,
   Alert,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 export default function UploadPhotoScreen() {
   const router = useRouter();
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
   const pickImage = async () => {
-    // For web, use file picker
     if (Platform.OS === 'web') {
       const input = document.createElement('input');
       input.type = 'file';
@@ -35,7 +36,6 @@ export default function UploadPhotoScreen() {
       return;
     }
 
-    // For mobile
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (!permission.granted) {
@@ -57,82 +57,97 @@ export default function UploadPhotoScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Step Indicator */}
-      <Text style={styles.stepText}>STEP 2 OF 4</Text>
-
-      {/* Title */}
-      <Text style={styles.title}>Upload Your Photo</Text>
-      <Text style={styles.subtitle}>
-        Help our AI see how jewelry looks on{'\n'}
-        you with a clear selfie.
-      </Text>
-
-      {/* Profile Picture Circle - Click to add */}
-      <TouchableOpacity style={styles.profileWrapper} onPress={pickImage} activeOpacity={0.8}>
-        <View style={styles.profileCircle}>
-          {profileImage ? (
-            <Image source={{ uri: profileImage }} style={styles.profileImage} />
-          ) : (
-            <View style={styles.emptyCircle} />
-          )}
-          {/* Plus button at bottom right corner */}
-          <View style={styles.plusButton}>
-            <Text style={styles.plusIcon}>+</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-
-      {/* Guidelines Section */}
-      <Text style={styles.guidelinesTitle}>GUIDELINES FOR BEST RESULTS</Text>
-
-      <View style={styles.guidelinesContainer}>
-        {/* Guideline 1 */}
-        <View style={styles.guidelineItem}>
-          <Text style={styles.bulletPoint}>●</Text>
-          <View style={styles.guidelineTextContainer}>
-            <Text style={styles.guidelineSubtitle}>Bright & Natural Light</Text>
-            <Text style={styles.guidelineDesc}>
-              Stand facing a window or a well-lit area to avoid shadows on your face.
-            </Text>
-          </View>
-        </View>
-
-        {/* Guideline 2 */}
-        <View style={styles.guidelineItem}>
-          <Text style={styles.bulletPoint}>●</Text>
-          <View style={styles.guidelineTextContainer}>
-            <Text style={styles.guidelineSubtitle}>Neutral Expression</Text>
-            <Text style={styles.guidelineDesc}>
-              Keep your hair tucked behind ears and maintain a gentle, natural look.
-            </Text>
-          </View>
-        </View>
-
-        {/* Guideline 3 */}
-        <View style={styles.guidelineItem}>
-          <Text style={styles.bulletPoint}>●</Text>
-          <View style={styles.guidelineTextContainer}>
-            <Text style={styles.guidelineSubtitle}>Eye-Level Shot</Text>
-            <Text style={styles.guidelineDesc}>
-              Hold your phone straight. Ensure your forehead and neck are visible.
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Continue Button */}
-      <TouchableOpacity 
-        style={styles.continueButton}
-        onPress={() => router.replace('./style')}
-        activeOpacity={0.8}
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
-        <Text style={styles.continueButtonText}>Continue</Text>
-      </TouchableOpacity>
+              <TouchableOpacity onPress={() => router.replace('./personalize1')}>
+                          <Text style={styles.back}>←</Text>
+                        </TouchableOpacity>
+        <Text style={styles.stepText}>STEP 2 OF 4</Text>
+              <View style={styles.progressRow}>
+                <View style={styles.progressDot} />
+                <View style={styles.progressActive} />
+                <View style={styles.progressDot} />
+                <View style={styles.progressDot} />
+              </View>
+        
 
-      {/* Privacy Note */}
-      <Text style={styles.privacyNote}>
-        Your photo is only used for virtual try-on and is never shared with third parties.
-      </Text>
+        <Text style={styles.title}>Upload Your Photo</Text>
+        <Text style={styles.subtitle}>
+          Help our AI see how jewelry looks on{'\n'}
+          you with a clear selfie.
+        </Text>
+
+        {/* Profile Picture Circle */}
+        <TouchableOpacity style={styles.profileWrapper} onPress={pickImage} activeOpacity={0.8}>
+          <View style={styles.profileCircle}>
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={styles.profileImage} />
+            ) : (
+              <View style={styles.iconContainer}>
+                {/* Diamond icon for luxury jewelry vibe */}
+                <Icon name="user-o" size={75} color="#CCCCCC" />
+              </View>
+            )}
+            <View style={styles.plusButton}>
+              <Icon name="plus" size={17} color="#FFFFFF" />
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        <Text style={styles.guidelinesTitle}>GUIDELINES FOR BEST RESULTS</Text>
+
+        <View style={styles.guidelinesContainer}>
+          <View style={styles.guidelineItem}>
+            <View style={styles.iconCircle}>
+              <Icon name="sun-o" size={20} color="#FF6B8A" />
+            </View>
+            <View style={styles.guidelineTextContainer}>
+              <Text style={styles.guidelineSubtitle}>Bright & Natural Light</Text>
+              <Text style={styles.guidelineDesc}>
+                Stand facing a window or a well-lit area to avoid shadows on your face.
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.guidelineItem}>
+            <View style={styles.iconCircle}>
+              <Icon name="smile-o" size={20} color="#FF6B8A" />
+            </View>
+            <View style={styles.guidelineTextContainer}>
+              <Text style={styles.guidelineSubtitle}>Neutral Expression</Text>
+              <Text style={styles.guidelineDesc}>
+                Keep your hair tucked behind ears and maintain a gentle, natural look.
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.guidelineItem}>
+            <View style={styles.iconCircle}>
+              <Icon name="camera" size={18} color="#FF6B8A" />
+            </View>
+            <View style={styles.guidelineTextContainer}>
+              <Text style={styles.guidelineSubtitle}>Eye-Level Shot</Text>
+              <Text style={styles.guidelineDesc}>
+                Hold your phone straight. Ensure your forehead and neck are visible.
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <TouchableOpacity 
+          style={styles.continueButton}
+          onPress={() => router.replace('./style')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.continueButtonText}>Continue</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.privacyNote}>
+          Your photo is only used for virtual try-on and is never shared with third parties.
+        </Text>
+      </ScrollView>
     </View>
   );
 }
@@ -141,8 +156,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F4F4F4',
+  },
+
+  scrollContent: {
     paddingHorizontal: 24,
     paddingTop: 50,
+    paddingBottom: 40,
+    alignItems: 'center',
   },
 
   stepText: {
@@ -170,6 +190,28 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
 
+    progressRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 14,
+    gap: 6,
+  },
+
+  progressDot: {
+    width: 6,
+    height: 4,
+    backgroundColor: "#DDD",
+    borderRadius: 2,
+  },
+
+  progressActive: {
+    width: 24,
+    height: 4,
+    backgroundColor: "#FF6B8A",
+    borderRadius: 2,
+  },
+
+
   profileWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -177,46 +219,59 @@ const styles = StyleSheet.create({
   },
 
   profileCircle: {
-    width: 180,
-    height: 180,
-    borderRadius: 100,
-    backgroundColor: '#F0F0F0',
-    borderWidth: 1.5,
-    borderColor: '#DDD',
-    overflow: 'hidden',
+    width: 140,
+    height: 140,
+    borderRadius: 80,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 2,
+    borderColor: '#FF6B8A',
+    borderStyle: 'dashed',
+    overflow: 'visible', // Changed from 'hidden'
     position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
-  emptyCircle: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#F0F0F0',
+  iconContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  iconHint: {
+    fontSize: 10,
+    color: '#D4A574',
+    marginTop: 4,
+    fontWeight: '500',
   },
 
   profileImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+    borderRadius: 60,
+  },
+
+    back: {
+    fontSize: 30,
+    color: '#333',
+    marginLeft: -160,
+    marginTop: -17,
+    marginBottom:20
   },
 
   plusButton: {
     position: 'absolute',
-    bottom: 20   ,
-    right: 18,
-    width: 35,
-    height: 35,
-    borderRadius: 20,
+    bottom: 13,
+    right: -7,
+    width: 40,
+    height: 40 ,
+    borderRadius: 25,
     backgroundColor: '#FF6B8A',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 2.5,
     borderColor: '#F4F4F4',
-  },
-
-  plusIcon: {
-    fontSize: 18,
-    color: '#fff',
-    fontWeight: 'bold',
+    zIndex: 10,
   },
 
   guidelinesTitle: {
@@ -225,22 +280,29 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 16,
     fontWeight: '500',
+    alignSelf: 'flex-start',
+    width: '100%',
   },
 
   guidelinesContainer: {
     marginBottom: 40,
-    gap: 20,
+    gap: 24,
+    width: '100%',
   },
 
   guidelineItem: {
     flexDirection: 'row',
-    gap: 12,
+    alignItems: 'flex-start',
+    gap: 14,
   },
 
-  bulletPoint: {
-    fontSize: 14,
-    color: '#FF6B8A',
-    marginTop: 2,
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFF0F2',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   guidelineTextContainer: {
@@ -267,6 +329,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
+    width: '100%',
   },
 
   continueButtonText: {
