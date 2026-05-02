@@ -15,21 +15,15 @@ export default function LanguageScreen() {
   const [selectedLanguage, setSelectedLanguage] = useState('nepali');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Helper functions to get data from previous steps
-  const getProfilePhoto = () => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('profilePhoto');
-    }
-    return null;
-  };
+// This works on mobile (no window check needed)
+const getProfilePhoto = () => {
+  return localStorage.getItem('profilePhoto');
+};
 
-  const getSelectedStyles = () => {
-    if (typeof window !== 'undefined') {
-      const styles = localStorage.getItem('selectedStyles');
-      return styles ? JSON.parse(styles) : [];
-    }
-    return [];
-  };
+const getSelectedStyles = () => {
+  const styles = localStorage.getItem('selectedStyles');
+  return styles ? JSON.parse(styles) : [];
+};  
 
   const handleContinue = async () => {
     setIsLoading(true);
@@ -343,4 +337,4 @@ const styles = StyleSheet.create({
     marginTop: -5,
     marginBottom: 20,
   },
-});
+}); 

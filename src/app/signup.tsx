@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Icon from 'react-native-vector-icons/FontAwesome';
 import {
   View,
   Text,
@@ -53,7 +54,7 @@ export default function SignUpScreen() {
 
       {/* Logo */}
       <View style={styles.logoCircle}>
-        <Text style={styles.logoIcon}>⚡</Text>
+        <Text style={styles.logoIcon}><Icon name="bolt" size={22} color="#FFCC00" /></Text>
       </View>
 
       {/* Title */}
@@ -95,7 +96,11 @@ export default function SignUpScreen() {
           selectionColor="#FF6B8A"
         />
         <TouchableOpacity onPress={() => setSecure(!secure)}>
-          <Text style={styles.eye}>👁</Text>
+          <Text style={styles.eye}>
+            <TouchableOpacity onPress={() => setSecure(!secure)}>
+            <Icon name={secure ? "eye" : "eye-slash"} size={18} color="#777" />
+          </TouchableOpacity>
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -109,7 +114,7 @@ export default function SignUpScreen() {
         Already have an account?{' '}
         <Text
           style={styles.link}
-          onPress={() => router.replace('/signin')}
+          onPress={() => router.replace('./signin')}
         >
           Sign In
         </Text>
@@ -199,7 +204,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
     paddingVertical: 12,
-    marginLeft: 4,
+    padding:10,
   },
 
   eye: {

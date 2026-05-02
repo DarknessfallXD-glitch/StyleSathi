@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Icon from 'react-native-vector-icons/FontAwesome';
 import {
   View,
   Text,
@@ -47,7 +48,7 @@ export default function SignInScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.replace('/welcome')}>
+        <TouchableOpacity onPress={() => router.replace('./welcome')}>
           <Text style={styles.back}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Sign In</Text>
@@ -56,7 +57,8 @@ export default function SignInScreen() {
 
       {/* Logo */}
       <View style={styles.logoCircle}>
-        <Text style={styles.logoIcon}>⚡</Text>
+        <Text style={styles.logoIcon}><Icon name="bolt" size={22} color="#FFCC00" />
+</Text>
       </View>
 
       {/* Title */}
@@ -88,7 +90,11 @@ export default function SignInScreen() {
           selectionColor="#FF6B8A"
         />
         <TouchableOpacity onPress={() => setSecure(!secure)}>
-          <Text style={styles.eye}>👁</Text>
+          <Text style={styles.eye}>
+            <TouchableOpacity onPress={() => setSecure(!secure)}>
+  <Icon name={secure ? "eye" : "eye-slash"} size={18} color="#777" />
+</TouchableOpacity>
+</Text>
         </TouchableOpacity>
       </View>
 

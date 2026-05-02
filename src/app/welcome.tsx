@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -24,20 +25,20 @@ export default function WelcomeScreen() {
 
         {/* Card */}
         <View style={styles.card}>
-          {/* ✅ IMAGE LEFT EXACTLY AS YOU HAD IT */}
           <Image
             source={{
-              uri: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9",
+              uri: "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400",
             }}
             style={styles.image}
           />
 
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>⚡ StyleSathy</Text>
+            <Icon name="bolt" size={14} color="#be7900b7" />
+            <Text style={styles.badgeText}> StyleSathy</Text>
           </View>
 
           <View style={styles.overlayText}>
-            <Text style={styles.smallLabel}>AI-POWERED TRY-ON</Text>
+            <Text style={styles.smallLabel}><strong>AI-POWERED TRY-ON</strong></Text>
 
             <Text style={styles.bigText}>Transform Your Style</Text>
             <Text style={styles.highlight}>Virtually</Text>
@@ -54,20 +55,23 @@ export default function WelcomeScreen() {
 
         <View style={styles.tags}>
           <View style={styles.tag}>
-            <Text style={styles.tagText}>✨ Instant Virtual Try-On</Text>
+            <Icon name="star" size={11} color="#FF6B8A" />
+            <Text style={styles.tagText}> Instant Virtual Try-On</Text>
           </View>
           <View style={styles.tag}>
-            <Text style={styles.tagText}>→ Local Retailers</Text>
+            <Icon name="arrow-right" size={11} color="#ff2b55" />
+            <Text style={styles.tagText}> Local Retailers</Text>
           </View>
           <View style={styles.tag}>
-            <Text style={styles.tagText}>✨ Smart Styling</Text>
+            <Icon name="magic" size={11} color="#4d1b9c" />
+            <Text style={styles.tagText}> Smart Styling</Text>
           </View>
         </View>
 
         {/* Button */}
         <TouchableOpacity
           style={styles.button}
-          onPress={() => router.replace("/signin")}
+          onPress={() => router.replace("./signin")}
         >
           <Text style={styles.buttonText}>Get Started →</Text>
         </TouchableOpacity>
@@ -75,7 +79,7 @@ export default function WelcomeScreen() {
         {/* Footer */}
         <Text style={styles.signIn}>
           Already have an account?{" "}
-          <Text style={styles.link} onPress={() => router.replace("/signin")}>
+          <Text style={styles.link} onPress={() => router.replace("./signin")}>
             Sign In
           </Text>
         </Text>
@@ -98,7 +102,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 50,
-    paddingBottom: 50, // ✅ FIX: prevents bottom cut-off
+    paddingBottom: 50,
   },
 
   greeting: {
@@ -134,11 +138,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
   },
 
   badgeText: {
     fontSize: 12,
     fontWeight: "600",
+    color: "#333",
   },
 
   overlayText: {
@@ -149,9 +156,10 @@ const styles = StyleSheet.create({
   },
 
   smallLabel: {
-    fontSize: 15,
-    color: "#ff315e",
+    fontSize: 18,
+    color: "#ff3964",
     marginBottom: 6,
+    
   },
 
   bigText: {
@@ -168,7 +176,7 @@ const styles = StyleSheet.create({
 
   desc: {
     fontSize: 14,
-    color: "#9b9696",
+    color: "#bdbdbd",
     marginTop: 6,
   },
 
@@ -191,6 +199,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     marginBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
   },
 
   tagText: {

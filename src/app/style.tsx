@@ -65,8 +65,8 @@ export default function StylePreferenceScreen() {
                <Text style={styles.stepText}>STEP 3 OF 4</Text>
                      <View style={styles.progressRow}>
                        <View style={styles.progressDot} />
-                       <View style={styles.progressActive} />
                        <View style={styles.progressDot} />
+                        <View style={styles.progressActive} />
                        <View style={styles.progressDot} />
                      </View>
         {/* Header */}

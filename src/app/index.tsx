@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -31,7 +32,8 @@ export default function SplashScreen() {
     <View style={styles.container}>
       <View style={styles.center}>
         <View style={styles.logoCircle}>
-          <Text style={styles.logoIcon}>⚡</Text>
+          {/* Changed from Text to Icon */}
+          <Icon name="bolt" size={22} color="#FFCC00" />
         </View>
 
         <Text style={styles.title}>StyleSathy</Text>
