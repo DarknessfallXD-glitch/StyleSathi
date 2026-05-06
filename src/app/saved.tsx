@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import BottomTab from '../comp/BottomTab';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
@@ -119,29 +120,7 @@ export default function SavedScreen() {
         </Text>
       </ScrollView>
 
-      {/* Bottom Tab Bar */}
-      <View style={styles.bottomTab}>
-        <TouchableOpacity style={styles.tabItem} onPress={() => router.push('./home')}>
-          <Icon name="home" size={22} color="#999" />
-          <Text style={styles.tabText}>Home</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem} onPress={() => router.push('./search-result')}>
-          <Icon name="search" size={22} color="#999" />
-          <Text style={styles.tabText}>Search</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem} onPress={() => router.push('./try-on')}>
-          <Icon name="camera" size={22} color="#999" />
-          <Text style={styles.tabText}>Try-On</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem} onPress={() => router.push('./saved')}>
-          <Icon name="heart" size={22} color="#FF6B8A" />
-          <Text style={[styles.tabText, styles.tabActive]}>Saved</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem} onPress={() => router.push('./profile')}>
-          <Icon name="user-o" size={22} color="#999" />
-          <Text style={styles.tabText}>Profile</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomTab active="saved" />
     </View>
   );
 }

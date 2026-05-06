@@ -1,6 +1,6 @@
-import React, { useRef, useState } from 'react';
-import { addToWishlist } from '../utils/wishlist';
-import { Alert } from 'react-native';
+import React, { useRef, useState, useEffect } from 'react';
+import BottomTab from '../comp/BottomTab';
+import { addToWishlist, removeFromWishlist, isInWishlist } from '../utils/wishlist';
 import {
   View,
   Text,
@@ -15,14 +15,14 @@ import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 52) / 2; // 20 padding left + 20 padding right + 12 gap = 52
+const CARD_WIDTH = (width - 52) / 2;
 
 export default function SearchResultsScreen() {
   const router = useRouter();
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [wishlistStatus, setWishlistStatus] = useState<{ [key: number]: boolean }>({});
 
-  // Featured items for horizontal scroll
   const featuredItems = [
     {
       id: 1,
@@ -66,6 +66,43 @@ export default function SearchResultsScreen() {
     { id: 5, name: 'White Choker', price: '₹500', category: 'CHOKER', image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=200' },
     { id: 6, name: 'Gold Temple Jhumka', price: '₹5,999', category: 'EARRINGS', image: 'https://images.unsplash.com/photo-1583391733956-6c1828f99805?w=200', isNew: true },
   ];
+
+  // Check wishlist status when component loads
+  useEffect(() => {
+    checkWishlistStatus();
+  }, []);
+
+  const checkWishlistStatus = async () => {
+    const status: { [key: number]: boolean } = {};
+    for (const item of searchResults) {
+      status[item.id] = await isInWishlist(item.id);
+    }
+    setWishlistStatus(status);
+  };
+
+  const toggleWishlist = async (item: typeof searchResults[0]) => {
+    const isWishlisted = wishlistStatus[item.id];
+    
+    if (isWishlisted) {
+      await removeFromWishlist(item.id);
+      console.log('Removed from wishlist:', item.name);
+    } else {
+      await addToWishlist({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        category: item.category,
+        image: item.image,
+      });
+      console.log('Added to wishlist:', item.name);
+    }
+    
+    // Update the status for this item
+    setWishlistStatus(prev => ({
+      ...prev,
+      [item.id]: !isWishlisted
+    }));
+  };
 
   const onScroll = (event: any) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
@@ -142,7 +179,6 @@ export default function SearchResultsScreen() {
             scrollEventThrottle={16}
           />
           
-          {/* Scroll Indicator Dots */}
           <View style={styles.indicatorContainer}>
             {featuredItems.map((_, index) => (
               <View
@@ -155,68 +191,61 @@ export default function SearchResultsScreen() {
             ))}
           </View>
           
-          {/* Hint Text */}
           <View style={styles.scrollHint}>
             <Icon name="arrow-left" size={12} color="#999" />
             <Text style={styles.scrollHintText}>Scroll to see more</Text>
             <Icon name="arrow-right" size={12} color="#999" />
           </View>
         </View>
-{/* Two Cards Per Row Grid */}
-<View style={styles.gridContainer}>
-  {searchResults.map((item) => (
-    <View key={item.id} style={{ width: CARD_WIDTH }}>
-      <TouchableOpacity style={styles.card} activeOpacity={0.8}>
-        <View style={styles.imageContainer}>
-  <Image source={{ uri: item.image }} style={styles.cardImage} />
-  {item.isNew && (
-    <View style={styles.newBadge}>
-      <Text style={styles.newBadgeText}>NEW</Text>
-    </View>
-  )}
-  {item.isAiTryOn && (
-    <View style={styles.aiBadge}>
-      <Icon name="magic" size={8} color="#FFFFFF" />
-      <Text style={styles.aiBadgeText}>AI TRY-ON</Text>
-    </View>
-  )}
-          {/* ADD HEART ICON HERE - Top right corner */}
-       <TouchableOpacity 
-    style={styles.wishlistIcon}
-    onPress={async () => {
-      const success = await addToWishlist({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        category: item.category,
-        image: item.image,
-        isNew: item.isNew,
-        isAiTryOn: item.isAiTryOn,
-      });
-      Alert.alert(
-        success ? 'Added to Wishlist' : 'Already in Wishlist',
-        success ? `${item.name} has been saved.` : `${item.name} is already in your wishlist.`
-      );
-    }}
-  >
-    <Icon name="heart-o" size={16} color="#FF6B8A" />
-  </TouchableOpacity>
-</View>
 
-        <View style={styles.cardInfo}>
-          <Text style={styles.cardCategory}>{item.category}</Text>
-          <Text style={styles.cardName}>{item.name}</Text>
-          <View style={styles.cardBottom}>
-            <Text style={styles.cardPrice}>{item.price}</Text>
-            <TouchableOpacity>
-              <Text style={styles.detailsText}>Details</Text>
-            </TouchableOpacity>
-          </View>
+        {/* Two Cards Per Row Grid */}
+        <View style={styles.gridContainer}>
+          {searchResults.map((item) => {
+            const isWishlisted = wishlistStatus[item.id] || false;
+            
+            return (
+              <View key={item.id} style={{ width: CARD_WIDTH }}>
+                <TouchableOpacity style={styles.card} activeOpacity={0.8}>
+                  <View style={styles.imageContainer}>
+                    <Image source={{ uri: item.image }} style={styles.cardImage} />
+                    {item.isNew && (
+                      <View style={styles.newBadge}>
+                        <Text style={styles.newBadgeText}>NEW</Text>
+                      </View>
+                    )}
+                    {item.isAiTryOn && (
+                      <View style={styles.aiBadge}>
+                        <Icon name="magic" size={8} color="#FFFFFF" />
+                        <Text style={styles.aiBadgeText}>AI TRY-ON</Text>
+                      </View>
+                    )}
+                    {/* Heart Icon - Toggles between outline and filled */}
+                    <TouchableOpacity 
+                      style={styles.wishlistIcon}
+                      onPress={() => toggleWishlist(item)}
+                    >
+                      <Icon 
+                        name={isWishlisted ? "heart" : "heart-o"} 
+                        size={16} 
+                        color="#FF6B8A" 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.cardInfo}>
+                    <Text style={styles.cardCategory}>{item.category}</Text>
+                    <Text style={styles.cardName}>{item.name}</Text>
+                    <View style={styles.cardBottom}>
+                      <Text style={styles.cardPrice}>{item.price}</Text>
+                      <TouchableOpacity>
+                        <Text style={styles.detailsText}>Details</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            );
+          })}
         </View>
-      </TouchableOpacity>
-    </View>
-  ))}
-</View>
 
         {/* End of Results */}
         <Text style={styles.endText}>End of Results ▼</Text>
@@ -225,29 +254,7 @@ export default function SearchResultsScreen() {
         </Text>
       </ScrollView>
 
-      {/* Bottom Tab Bar */}
-<View style={styles.bottomTab}>
-  <TouchableOpacity style={styles.tabItem} onPress={() => router.push('./home')} activeOpacity={0.7}>
-    <Icon name="home" size={22} color="#999" />
-    <Text style={styles.tabText}>Home</Text>
-  </TouchableOpacity>
-  <TouchableOpacity style={styles.tabItem} onPress={() => router.push('./search-result')} activeOpacity={0.7}>
-    <Icon name="search" size={22} color="#FF6B8A" />
-    <Text style={[styles.tabText, styles.tabActive]}>Search</Text>
-  </TouchableOpacity>
-  <TouchableOpacity style={styles.tabItem} onPress={() => router.push('./try-on')} activeOpacity={0.7}>
-    <Icon name="camera" size={22} color="#999" />
-    <Text style={styles.tabText}>Try-On</Text>
-  </TouchableOpacity>
-  <TouchableOpacity style={styles.tabItem} onPress={() => router.push('./saved')} activeOpacity={0.7}>
-    <Icon name="heart-o" size={22} color="#999" />
-    <Text style={styles.tabText}>Saved</Text>
-  </TouchableOpacity>
-  <TouchableOpacity style={styles.tabItem} onPress={() => router.push('./profile')} activeOpacity={0.7}>
-    <Icon name="user-o" size={22} color="#999" />
-    <Text style={styles.tabText}>Profile</Text>
-  </TouchableOpacity>
-</View>
+     <BottomTab active="search-result" />
     </View>
   );
 }
@@ -285,18 +292,18 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 
-wishlistIcon: {
-  position: 'absolute',
-  top: 6,
-  right: 6,
-  backgroundColor: 'rgba(255,255,255,0.9)',
-  width: 28,
-  height: 28,
-  borderRadius: 14,
-  justifyContent: 'center',
-  alignItems: 'center',
-  zIndex: 10,
-},
+  wishlistIcon: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
 
   filterChip: {
     paddingHorizontal: 14,
@@ -327,7 +334,6 @@ wishlistIcon: {
     marginBottom: 16,
   },
 
-  // Featured Horizontal Scroll List
   featuredList: {
     paddingHorizontal: 20,
     marginBottom: 8,
@@ -405,7 +411,6 @@ wishlistIcon: {
     fontWeight: '600',
   },
 
-  // Scroll Indicator
   indicatorContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -439,7 +444,6 @@ wishlistIcon: {
     color: '#999',
   },
 
-  // Grid - Two cards per row
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -561,31 +565,4 @@ wishlistIcon: {
     lineHeight: 16,
   },
 
-  bottomTab: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-
-  tabItem: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 4,
-  },
-
-  tabText: {
-    fontSize: 10,
-    color: '#999',
-  },
-
-  tabActive: {
-    color: '#FF6B8A',
-  },
 });
