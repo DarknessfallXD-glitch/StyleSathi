@@ -1,4 +1,6 @@
 import React, { useRef, useState } from 'react';
+import { addToWishlist } from '../utils/wishlist';
+import { Alert } from 'react-native';
 import {
   View,
   Text,
@@ -160,40 +162,61 @@ export default function SearchResultsScreen() {
             <Icon name="arrow-right" size={12} color="#999" />
           </View>
         </View>
+{/* Two Cards Per Row Grid */}
+<View style={styles.gridContainer}>
+  {searchResults.map((item) => (
+    <View key={item.id} style={{ width: CARD_WIDTH }}>
+      <TouchableOpacity style={styles.card} activeOpacity={0.8}>
+        <View style={styles.imageContainer}>
+  <Image source={{ uri: item.image }} style={styles.cardImage} />
+  {item.isNew && (
+    <View style={styles.newBadge}>
+      <Text style={styles.newBadgeText}>NEW</Text>
+    </View>
+  )}
+  {item.isAiTryOn && (
+    <View style={styles.aiBadge}>
+      <Icon name="magic" size={8} color="#FFFFFF" />
+      <Text style={styles.aiBadgeText}>AI TRY-ON</Text>
+    </View>
+  )}
+          {/* ADD HEART ICON HERE - Top right corner */}
+       <TouchableOpacity 
+    style={styles.wishlistIcon}
+    onPress={async () => {
+      const success = await addToWishlist({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        category: item.category,
+        image: item.image,
+        isNew: item.isNew,
+        isAiTryOn: item.isAiTryOn,
+      });
+      Alert.alert(
+        success ? 'Added to Wishlist' : 'Already in Wishlist',
+        success ? `${item.name} has been saved.` : `${item.name} is already in your wishlist.`
+      );
+    }}
+  >
+    <Icon name="heart-o" size={16} color="#FF6B8A" />
+  </TouchableOpacity>
+</View>
 
-        {/* Two Cards Per Row Grid */}
-        <View style={styles.gridContainer}>
-          {searchResults.map((item) => (
-            <View key={item.id} style={{ width: CARD_WIDTH }}>
-              <TouchableOpacity style={styles.card} activeOpacity={0.8}>
-                <View style={styles.imageContainer}>
-                  <Image source={{ uri: item.image }} style={styles.cardImage} />
-                  {item.isNew && (
-                    <View style={styles.newBadge}>
-                      <Text style={styles.newBadgeText}>NEW</Text>
-                    </View>
-                  )}
-                  {item.isAiTryOn && (
-                    <View style={styles.aiBadge}>
-                      <Icon name="magic" size={8} color="#FFFFFF" />
-                      <Text style={styles.aiBadgeText}>AI TRY-ON</Text>
-                    </View>
-                  )}
-                </View>
-                <View style={styles.cardInfo}>
-                  <Text style={styles.cardCategory}>{item.category}</Text>
-                  <Text style={styles.cardName}>{item.name}</Text>
-                  <View style={styles.cardBottom}>
-                    <Text style={styles.cardPrice}>{item.price}</Text>
-                    <TouchableOpacity>
-                      <Text style={styles.detailsText}>Details</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            </View>
-          ))}
+        <View style={styles.cardInfo}>
+          <Text style={styles.cardCategory}>{item.category}</Text>
+          <Text style={styles.cardName}>{item.name}</Text>
+          <View style={styles.cardBottom}>
+            <Text style={styles.cardPrice}>{item.price}</Text>
+            <TouchableOpacity>
+              <Text style={styles.detailsText}>Details</Text>
+            </TouchableOpacity>
+          </View>
         </View>
+      </TouchableOpacity>
+    </View>
+  ))}
+</View>
 
         {/* End of Results */}
         <Text style={styles.endText}>End of Results ▼</Text>
@@ -261,6 +284,19 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     gap: 10,
   },
+
+wishlistIcon: {
+  position: 'absolute',
+  top: 6,
+  right: 6,
+  backgroundColor: 'rgba(255,255,255,0.9)',
+  width: 28,
+  height: 28,
+  borderRadius: 14,
+  justifyContent: 'center',
+  alignItems: 'center',
+  zIndex: 10,
+},
 
   filterChip: {
     paddingHorizontal: 14,

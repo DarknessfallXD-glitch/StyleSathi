@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { addToWishlist } from '../utils/wishlist';
+import { Alert } from 'react-native';
 import {
   View,
   Text,
@@ -28,6 +30,7 @@ type Product = {
   price: string;
   tag: string;
   image: string;
+  category: string;  // Add this
 };
 
 export default function HomeScreen() {
@@ -42,11 +45,11 @@ export default function HomeScreen() {
   ];
 
   const justForYou: Product[] = [
-    { id: 1, name: 'Antique Gold Jhumk', price: '₹4,999', tag: 'AI Try-On', image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=200' },
-    { id: 2, name: 'Silver Minimal Ring', price: '₹1,250', tag: 'AI Try-On', image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=200' },
-    { id: 3, name: 'Pearl Drop Necklace', price: '₹3,400', tag: 'AI Try-On', image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=200' },
-    { id: 4, name: 'Floral Tikka', price: '₹2,100', tag: 'AI Try-On', image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?w=200' },
-  ];
+  { id: 1, name: 'Antique Gold Jhumk', price: '₹4,999', tag: 'AI Try-On', category: 'EARRINGS', image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=200' },
+  { id: 2, name: 'Silver Minimal Ring', price: '₹1,250', tag: 'AI Try-On', category: 'RINGS', image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=200' },
+  { id: 3, name: 'Pearl Drop Necklace', price: '₹3,400', tag: 'AI Try-On', category: 'NECKLACE', image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=200' },
+  { id: 4, name: 'Floral Tikka', price: '₹2,100', tag: 'AI Try-On', category: 'MAANG TIKKA', image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?w=200' },
+];
 
   const renderRecentSearch = ({ item }: { item: RecentSearch }) => (
     <TouchableOpacity style={styles.recentChip}>
@@ -54,19 +57,40 @@ export default function HomeScreen() {
     </TouchableOpacity>
   );
 
-  const renderJustForYou = ({ item }: { item: Product }) => (
-    <TouchableOpacity style={styles.productCard} activeOpacity={0.8}>
-      <View style={styles.productImageWrapper}>
-        <Image source={{ uri: item.image }} style={styles.productImage} />
-        <View style={styles.aiTag}>
-          <Icon name="magic" size={10} color="#FF6B8A" />
-          <Text style={styles.aiTagText}>{item.tag}</Text>
-        </View>
+const renderJustForYou = ({ item }: { item: Product }) => (
+  <TouchableOpacity style={styles.productCard} activeOpacity={0.8}>
+    <View style={styles.productImageWrapper}>
+      <Image source={{ uri: item.image }} style={styles.productImage} />
+      <View style={styles.aiTag}>
+        <Icon name="magic" size={10} color="#FF6B8A" />
+        <Text style={styles.aiTagText}>{item.tag}</Text>
       </View>
-      <Text style={styles.productName}>{item.name}</Text>
-      <Text style={styles.productPrice}>{item.price}</Text>
-    </TouchableOpacity>
-  );
+      {/* Heart Icon - Add to Wishlist */}
+      <TouchableOpacity 
+        style={styles.wishlistIcon}
+        onPress={async () => {
+          const success = await addToWishlist({
+              id: item.id,
+              name: item.name,
+              price: item.price,
+              category: item.category || 'JEWELRY',
+              image: item.image,
+            });
+            console.log('Add to wishlist result:', success, item.name);
+            
+          Alert.alert(
+            success ? 'Added to Wishlist' : 'Already in Wishlist',
+            success ? `${item.name} has been saved.` : `${item.name} is already in your wishlist.`
+          );
+        }}
+      >
+        <Icon name="heart-o" size={18} color="#FF6B8A" />
+      </TouchableOpacity>
+    </View>
+    <Text style={styles.productName}>{item.name}</Text>
+    <Text style={styles.productPrice}>{item.price}</Text>
+  </TouchableOpacity>
+);
 
   return (
     <View style={styles.container}>
@@ -219,6 +243,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
+  wishlistIcon: {
+  position: 'absolute',
+  top: 8,
+  right: 8,
+  backgroundColor: 'rgba(255,255,255,0.9)',
+  width: 32,
+  height: 32,
+  borderRadius: 16,
+  justifyContent: 'center',
+  alignItems: 'center',
+  zIndex: 10,
+},
+
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -292,6 +329,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
+  
 
   featuredCard: {
     flex: 1,
