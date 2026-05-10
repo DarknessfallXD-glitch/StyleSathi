@@ -76,11 +76,13 @@ export default function ProfileScreen() {
         <View style={styles.tabs}>
           <Text style={styles.tabActiveText}>My Wardrobe</Text>
           <Text style={styles.tabTextInactive}>Saved Items</Text>
-          <Text style={styles.tabTextInactive}>Subscription</Text>
+          <TouchableOpacity onPress={() => router.push('/subscription')}>
+  <Text style={styles.tabTextInactive}>Subscription</Text>
+</TouchableOpacity>
         </View>
 
         {/* Recent Tries */}
-        <View style={styles.recentSection}>
+        <View>
           <View style={styles.recentHeader}>
             <Text style={styles.recentTitle}>Recent Tries</Text>
             <Text style={styles.viewAllText}>View All</Text>
@@ -307,4 +309,5 @@ const styles = StyleSheet.create({
   tabActive: {
     color: '#FF6B8A',
   },
+
 });
