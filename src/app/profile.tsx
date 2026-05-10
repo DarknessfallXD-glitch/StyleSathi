@@ -35,9 +35,9 @@ export default function ProfileScreen() {
           <TouchableOpacity>
             <Icon name="bolt" size={20} color="#333" />
           </TouchableOpacity>
-          <TouchableOpacity>
-            <Icon name="cog" size={20} color="#333" />
-          </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('./settings')}>
+    <Icon name="cog" size={20} color="#333" />
+  </TouchableOpacity>
         </View>
 
         {/* Profile */}

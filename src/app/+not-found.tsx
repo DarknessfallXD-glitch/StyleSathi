@@ -92,14 +92,6 @@ export default function NotFoundScreen() {
         </View>
 
         {/* Buttons */}
-        <TouchableOpacity 
-          style={styles.primaryButton}
-          onPress={() => router.replace('./welcome')}
-          activeOpacity={0.8}
-        >
-          <Icon name="home" size={18} color="#FFFFFF" style={styles.buttonIcon} />
-          <Text style={styles.primaryButtonText}>Go to Homepage</Text>
-        </TouchableOpacity>
 
       </Animated.View>
     </View>
