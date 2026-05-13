@@ -25,13 +25,12 @@ export default function SignInScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(30));
 
-  // Google Sign-In
+  // Google Sign-In - Simplified
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: '478569591036-v0bj4glv8o9v7q66s7ovp86lfki0n66k.apps.googleusercontent.com',
   });
@@ -52,185 +51,64 @@ export default function SignInScreen() {
     ]).start();
   }, []);
 
-  // ==================== EMAIL VALIDATION ====================
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
-  // ==================== FORM VALIDATION ====================
   const validateForm = (): boolean => {
     const newErrors: { email?: string; password?: string } = {};
     
-    // Email validation
     if (!email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!validateEmail(email)) {
-      newErrors.email = 'Please enter a valid email address (e.g., name@example.com)';
+      newErrors.email = 'Please enter a valid email address';
     }
     
-    // Password validation
     if (!password) {
       newErrors.password = 'Password is required';
     } else if (password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
-    } else if (password.length > 50) {
-      newErrors.password = 'Password must be less than 50 characters';
     }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // ==================== EMAIL/PASSWORD SIGN IN ====================
   const handleSignIn = async () => {
-    // Clear previous errors
     setErrors({});
-    
-    // Validate form
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
     
     setIsLoading(true);
     
     try {
-      // Check network connection
-      if (!navigator.onLine && Platform.OS === 'web') {
-        throw new Error('No internet connection. Please check your network.');
-      }
-      
-      // Prepare data for backend
-      const loginData = {
-        type: 'email_password',
-        email: email.trim().toLowerCase(),
-        password: password,
-        rememberMe: rememberMe,
-        timestamp: new Date().toISOString(),
-        deviceInfo: {
-          platform: Platform.OS,
-          appVersion: '2.4.1',
-        },
-      };
-      
-      console.log('📤 Email Login Data:', JSON.stringify(loginData, null, 2));
-      
-      // Simulate API call - Replace with actual API
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Store user data locally
-      const userData = {
-        email: email.trim().toLowerCase(),
-        provider: 'email',
-        loggedInAt: new Date().toISOString(),
-        isAuthenticated: true,
-      };
-      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const userData = { email: email.trim().toLowerCase(), provider: 'email', loggedInAt: new Date().toISOString() };
       await AsyncStorage.setItem('user', JSON.stringify(userData));
-      if (rememberMe) {
-        await AsyncStorage.setItem('rememberedEmail', email.trim().toLowerCase());
-      }
-      
-      console.log('✅ Login successful for:', email);
       Alert.alert('Success', 'Logged in successfully!');
       router.replace('/home');
-      
     } catch (error: any) {
-      console.error('❌ Login error:', error);
-      
-      // Handle different error types
-      if (error.message.includes('internet') || error.message.includes('network')) {
-        Alert.alert('Network Error', 'Please check your internet connection and try again.');
-      } else if (error.message.includes('timeout')) {
-        Alert.alert('Timeout Error', 'Request took too long. Please try again.');
-      } else {
-        Alert.alert('Login Failed', error.message || 'Invalid email or password. Please try again.');
-      }
+      Alert.alert('Login Failed', error.message || 'Something went wrong');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ==================== GOOGLE SIGN IN ====================
-const handleGoogleLogin = async () => {
-  // Prevent multiple clicks
-  if (googleLoading) return;
-  
-  setGoogleLoading(true);
-  
-  // Set a timeout to reset loading if user takes too long
-  const timeoutId = setTimeout(() => {
-    if (googleLoading) {
-      setGoogleLoading(false);
-      console.log('Google Sign-In timed out');
-    }
-  }, 30000); // 30 seconds timeout
-  
-  try {
-    // Check if the request is ready
-    if (!request) {
-      throw new Error('Google Sign-In is not initialized. Please try again.');
-    }
-    
-    // Prompt Google Sign-In
-    await promptAsync();
-    
-    // Clear timeout on success
-    clearTimeout(timeoutId);
-    
-  } catch (error: any) {
-    console.error('❌ Google Sign-In error:', error);
-    clearTimeout(timeoutId);
-    
-    if (error.message?.includes('cancel') || error.message?.includes('dismiss')) {
-      // User cancelled - just reset loading, no error message
-      setGoogleLoading(false);
-    } else if (error.message?.includes('internet') || error.message?.includes('network')) {
-      Alert.alert('Network Error', 'Please check your internet connection and try again.');
-      setGoogleLoading(false);
-    } else {
-      Alert.alert('Google Sign-In Error', error.message || 'Failed to open Google Sign-In. Please try again.');
-      setGoogleLoading(false);
-    }
-  }
-};
-  // ==================== HANDLE GOOGLE RESPONSE ====================
+  // SIMPLE GOOGLE HANDLER - No complicated loading states
+  const handleGoogleLogin = () => {
+    promptAsync();
+  };
+
+  // Handle Google response
   useEffect(() => {
-    const handleGoogleResponse = async () => {
-      // Handle successful response
-      if (response?.type === 'success') {
-        const { authentication } = response;
-        
-        // Validate authentication object
-        if (!authentication || !authentication.accessToken) {
-          Alert.alert('Error', 'Failed to get authentication token. Please try again.');
-          setGoogleLoading(false);
-          return;
-        }
-        
-        try {
-          // Fetch user info from Google
-          const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-            headers: {
-              Authorization: `Bearer ${authentication.accessToken}`,
-            },
-          });
-          
-          // Check if fetch was successful
-          if (!userInfoResponse.ok) {
-            throw new Error(`Failed to fetch user info: ${userInfoResponse.status}`);
-          }
-          
-          const userInfo = await userInfoResponse.json();
-          
-          // Validate user info
-          if (!userInfo.email) {
-            throw new Error('Could not retrieve email from Google');
-          }
-          
-          console.log('✅ Google User Info:', userInfo);
-          
-          // Store user data
+    if (response?.type === 'success') {
+      const { authentication } = response;
+      
+      fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${authentication?.accessToken}` },
+      })
+        .then(res => res.json())
+        .then(async (userInfo) => {
           const userData = {
             id: userInfo.sub,
             email: userInfo.email,
@@ -238,73 +116,27 @@ const handleGoogleLogin = async () => {
             picture: userInfo.picture,
             provider: 'google',
             loggedInAt: new Date().toISOString(),
-            isAuthenticated: true,
           };
-          
           await AsyncStorage.setItem('user', JSON.stringify(userData));
-          console.log('✅ User saved successfully');
-          
           Alert.alert('Success', `Welcome ${userData.name}!`);
           router.replace('/home');
-          
-        } catch (error: any) {
-          console.error('❌ Error fetching Google user info:', error);
-          Alert.alert(
-            'Login Error',
-            error.message || 'Failed to get your information from Google. Please try again.'
-          );
-          setGoogleLoading(false);
-        }
-      } 
-      // Handle error response
-      else if (response?.type === 'error') {
-        console.error('❌ Google response error:', response.error);
-        
-        // Handle different error types
-        if (response.error?.message?.includes('popup')) {
-          Alert.alert('Popup Blocked', 'Please allow popups for this site and try again.');
-        } else if (response.error?.message?.includes('network')) {
-          Alert.alert('Network Error', 'Please check your internet connection.');
-        } else {
-          Alert.alert('Google Sign-In Failed', response.error?.message || 'Something went wrong. Please try again.');
-        }
-        setGoogleLoading(false);
-      }
-    };
-    
-    handleGoogleResponse();
+        })
+        .catch(err => {
+          console.error(err);
+          Alert.alert('Error', 'Failed to get Google user info');
+        });
+    } else if (response?.type === 'error') {
+      // User cancelled - do nothing, no alert, no loading
+      console.log('Google sign in cancelled or failed');
+    }
   }, [response]);
 
-  // ==================== APPLE SIGN IN (Placeholder) ====================
   const handleAppleLogin = () => {
-    Alert.alert(
-      'Apple Sign-In',
-      'Apple Sign-In will be available in the next update!',
-      [{ text: 'OK' }]
-    );
+    Alert.alert('Coming Soon', 'Apple Sign-In will be available soon!');
   };
 
-  // ==================== FORGOT PASSWORD ====================
   const handleForgotPassword = () => {
-    Alert.alert(
-      'Reset Password',
-      'Enter your email address and we will send you a link to reset your password.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Send',
-          onPress: () => {
-            if (!email) {
-              Alert.alert('Error', 'Please enter your email address first.');
-            } else if (!validateEmail(email)) {
-              Alert.alert('Error', 'Please enter a valid email address.');
-            } else {
-              Alert.alert('Success', `Password reset link sent to ${email}`);
-            }
-          },
-        },
-      ]
-    );
+    Alert.alert('Reset Password', 'Password reset link will be sent to your email.');
   };
 
   return (
@@ -317,7 +149,6 @@ const handleGoogleLogin = async () => {
         }
       ]}
     >
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.replace('./welcome')}>
           <Icon name="arrow-left" size={24} color="#333" />
@@ -326,18 +157,16 @@ const handleGoogleLogin = async () => {
         <View style={{ width: 24 }} />
       </View>
 
-      {/* Logo */}
       <View style={styles.logoCircle}>
         <Icon name="bolt" size={26} color="#FFCC00" />
       </View>
 
-      {/* Title */}
       <Text style={styles.title}>Welcome Back</Text>
       <Text style={styles.subtitle}>
         Ready for your next virtual try-on? Sign in to access your wardrobe.
       </Text>
 
-      {/* Email Input */}
+      {/* Email */}
       <Text style={styles.label}>Email or Phone Number</Text>
       <View style={[styles.inputBox, errors.email && styles.inputError]}>
         <Icon name="envelope" size={16} color="#999" style={styles.inputIcon} />
@@ -353,12 +182,11 @@ const handleGoogleLogin = async () => {
           }}
           autoCapitalize="none"
           keyboardType="email-address"
-          editable={!isLoading && !googleLoading}
         />
       </View>
       {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
 
-      {/* Password Input */}
+      {/* Password */}
       <Text style={styles.label}>Password</Text>
       <View style={[styles.inputBox, errors.password && styles.inputError]}>
         <Icon name="lock" size={16} color="#999" style={styles.inputIcon} />
@@ -373,7 +201,6 @@ const handleGoogleLogin = async () => {
             setPassword(text);
             if (errors.password) setErrors({ ...errors, password: undefined });
           }}
-          editable={!isLoading && !googleLoading}
         />
         <TouchableOpacity onPress={() => setSecure(!secure)}>
           <Icon name={secure ? "eye" : "eye-slash"} size={18} color="#777" />
@@ -381,12 +208,10 @@ const handleGoogleLogin = async () => {
       </View>
       {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
-      {/* Remember / Forgot */}
       <View style={styles.row}>
         <TouchableOpacity 
           style={styles.checkboxContainer} 
           onPress={() => setRememberMe(!rememberMe)}
-          disabled={isLoading || googleLoading}
         >
           <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
             {rememberMe && <Icon name="check" size={10} color="#FFFFFF" />}
@@ -399,65 +224,36 @@ const handleGoogleLogin = async () => {
         </TouchableOpacity>
       </View>
 
-      {/* Sign In Button */}
       <TouchableOpacity 
-        style={[styles.button, (isLoading || googleLoading) && styles.buttonDisabled]}
+        style={[styles.button, isLoading && styles.buttonDisabled]}
         onPress={handleSignIn}
         activeOpacity={0.8}
-        disabled={isLoading || googleLoading}
+        disabled={isLoading}
       >
-        {isLoading ? (
-          <ActivityIndicator color="#FFFFFF" />
-        ) : (
-          <Text style={styles.buttonText}>Sign In</Text>
-        )}
+        {isLoading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Sign In</Text>}
       </TouchableOpacity>
 
-      {/* Divider */}
       <View style={styles.dividerRow}>
         <View style={styles.line} />
         <Text style={styles.or}>OR SIGN IN WITH</Text>
         <View style={styles.line} />
       </View>
 
-      {/* Social Buttons */}
       <View style={styles.socialRow}>
-        <TouchableOpacity 
-          style={[styles.socialBtn, (isLoading || googleLoading) && styles.socialBtnDisabled]}
-          activeOpacity={0.7}
-          onPress={handleGoogleLogin}
-          disabled={isLoading || googleLoading}
-        >
-          {googleLoading ? (
-            <ActivityIndicator size="small" color="#DB4437" />
-          ) : (
-            <>
-              <Icon name="google" size={18} color="#DB4437" />
-              <Text style={styles.socialLabel}>Google</Text>
-            </>
-          )}
+        <TouchableOpacity style={styles.socialBtn} activeOpacity={0.7} onPress={handleGoogleLogin}>
+          <Icon name="google" size={18} color="#DB4437" />
+          <Text style={styles.socialLabel}>Google</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.socialBtn, (isLoading || googleLoading) && styles.socialBtnDisabled]}
-          activeOpacity={0.7}
-          onPress={handleAppleLogin}
-          disabled={isLoading || googleLoading}
-        >
+        <TouchableOpacity style={styles.socialBtn} activeOpacity={0.7} onPress={handleAppleLogin}>
           <Icon name="apple" size={18} color="#000000" />
           <Text style={styles.socialLabel}>Apple</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Footer */}
       <Text style={styles.footer}>
         Don't have an account?{' '}
-        <Text
-          style={styles.link}
-          onPress={() => router.replace('/signup')}
-        >
-          Sign Up
-        </Text>
+        <Text style={styles.link} onPress={() => router.replace('/signup')}>Sign Up</Text>
       </Text>
     </Animated.View>
   );
@@ -530,7 +326,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     color: '#333',
     paddingVertical: 12,
   },
@@ -620,9 +416,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 14,
     gap: 10,
-  },
-  socialBtnDisabled: {
-    opacity: 0.6,
   },
   socialLabel: {
     fontSize: 14,
