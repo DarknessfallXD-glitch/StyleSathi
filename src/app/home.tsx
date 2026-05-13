@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
-import BottomTab from "../comp/BottomTab.tsx";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   ScrollView,
@@ -10,14 +10,17 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from "react-native";
+} from "react-native";    
 import Icon from "react-native-vector-icons/FontAwesome";
+import BottomTab from "../comp/BottomTab.tsx";
 
 import {
   addToWishlist,
   isInWishlist,
   removeFromWishlist,
 } from "../utils/wishlist";
+
+import { fetchJustForYou } from "../services/api.ts";
 
 // Add type definitions
 type RecentSearch = string;
@@ -44,6 +47,9 @@ export default function HomeScreen() {
   const [wishlistStatus, setWishlistStatus] = useState<{
     [key: number]: boolean;
   }>({});
+  const [justForYou, setJustForYou] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const recentSearches: RecentSearch[] = [
     "earrings",
@@ -62,49 +68,43 @@ export default function HomeScreen() {
     { id: 2, title: "Trending", subtitle: "Daily Explore", color: "#FFB347" },
   ];
 
-  const justForYou: Product[] = [
-    {
-      id: 1,
-      name: "Antique Gold Jhumk",
-      price: "₹4,999",
-      tag: "AI Try-On",
-      category: "EARRINGS",
-      image:
-        "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=200",
-    },
-    {
-      id: 2,
-      name: "Silver Minimal Ring",
-      price: "₹1,250",
-      tag: "AI Try-On",
-      category: "RINGS",
-      image:
-        "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=200",
-    },
-    {
-      id: 3,
-      name: "Pearl Drop Necklace",
-      price: "₹3,400",
-      tag: "AI Try-On",
-      category: "NECKLACE",
-      image:
-        "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=200",
-    },
-    {
-      id: 4,
-      name: "Floral Tikka",
-      price: "₹2,100",
-      tag: "AI Try-On",
-      category: "MAANG TIKKA",
-      image:
-        "https://images.unsplash.com/photo-1617038220319-276d3cfab638?w=200",
-    },
-  ];
+  // Fetch products from API
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const result = await fetchJustForYou();
+
+      if (result.success) {
+        // Transform API data to match Product type
+        const products = result.data.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          price: `₹${item.price.toLocaleString()}`,
+          tag: item.tag || "AI Try-On",
+          category: item.category,
+          image: item.image_url,
+        }));
+        setJustForYou(products);
+      } else {
+        setError(result.error || "Failed to load products");
+      }
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Check wishlist status when component loads
   useEffect(() => {
     checkWishlistStatus();
-  }, []);
+  }, [justForYou]);
 
   const checkWishlistStatus = async () => {
     const status: { [key: number]: boolean } = {};
@@ -131,7 +131,6 @@ export default function HomeScreen() {
       console.log("Added to wishlist:", item.name);
     }
 
-    // Update the status for this item
     setWishlistStatus((prev) => ({
       ...prev,
       [item.id]: !isWishlisted,
@@ -155,7 +154,6 @@ export default function HomeScreen() {
             <Icon name="magic" size={10} color="#FF6B8A" />
             <Text style={styles.aiTagText}>{item.tag}</Text>
           </View>
-          {/* Heart Icon - Toggles between outline and filled */}
           <TouchableOpacity
             style={styles.wishlistIcon}
             onPress={() => toggleWishlist(item)}
@@ -172,6 +170,27 @@ export default function HomeScreen() {
       </TouchableOpacity>
     );
   };
+
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#FF6B8A" />
+        <Text style={styles.loadingText}>Loading amazing jewelry...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.centerContainer}>
+        <Icon name="exclamation-triangle" size={50} color="#FF6B8A" />
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={loadProducts}>
+          <Text style={styles.retryButtonText}>Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -210,9 +229,9 @@ export default function HomeScreen() {
 
         {/* Recent Searches */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+          <View style={styles.RecentSearches}>
             <Icon name="calendar" size={16} color="#FF6B8A" />
-            <Text style={styles.sectionTitle}> Recent Searches</Text>
+            <Text style={styles.RecentTitle}> Recent Searches</Text>
           </View>
           <FlatList
             data={recentSearches}
@@ -334,6 +353,20 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
+
+  RecentSearches:{
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+    marginRight:100,
+    height:40,
+  },
+  RecentTitle:{
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#2F343A",
+  }
+  ,
 
   searchIcon: {
     marginRight: 10,
@@ -478,5 +511,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: "#FF6B8A",
+  },
+
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F4F4F4",
+  },
+
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#888",
+  },
+
+  errorText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#FF4444",
+    textAlign: "center",
+    paddingHorizontal: 20,
+  },
+
+  retryButton: {
+    marginTop: 16,
+    backgroundColor: "#FF6B8A",
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 25,
+  },
+
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
 });
