@@ -83,7 +83,7 @@ const getSelectedStyles = () => {
     setIsLoading(false);
     
     // Navigate to home/welcome
-    router.replace('./welcome');
+    router.replace('./home');
   };
 
   const languages = [

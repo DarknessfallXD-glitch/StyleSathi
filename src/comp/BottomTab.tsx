@@ -7,17 +7,17 @@ export default function BottomTab({ active }) {
   const router = useRouter();
 
   const tabs = [
-    { name: "home", icon: "home", route: "./home" },
-    { name: "search", icon: "search", route: "./search-result" },
-    { name: "Try-On", icon: "camera", route: "./try-on" },
-    { name: "saved", icon: "heart-o", route: "./saved" },
-    { name: "profile", icon: "user", route: "./profile" },
+    { name: "home", Label:"home", icon: "home", route: "./home" },
+    { name: "search",Label:"search-result", icon: "search", route: "./search-result" },
+    { name: "Try-On",Label:"try-on", icon: "camera", route: "./try-on" },
+    { name: "saved",Label:"saved", icon: "heart-o", route: "./saved" },
+    { name: "profile",Label:"profile", icon: "user", route: "./profile" },
   ];
 
   return (
     <View style={styles.bottomTab}>
       {tabs.map((tab) => {
-        const isActive = active === tab.name;
+        const isActive = active === tab.Label;
 
         return (
           <TouchableOpacity
