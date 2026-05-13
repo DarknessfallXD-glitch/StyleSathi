@@ -9,7 +9,7 @@ export default function BottomTab({ active }) {
   const tabs = [
     { name: "home", icon: "home", route: "./home" },
     { name: "search", icon: "search", route: "./search-result" },
-    { name: "style", icon: "camera", route: "./try-on" },
+    { name: "Try-On", icon: "camera", route: "./try-on" },
     { name: "saved", icon: "heart-o", route: "./saved" },
     { name: "profile", icon: "user", route: "./profile" },
   ];
