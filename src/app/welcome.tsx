@@ -9,7 +9,6 @@ import {
   View,
 } from "react-native";
 import Icon from 'react-native-vector-icons/FontAwesome';
-
 export default function WelcomeScreen() {
   const router = useRouter();
 
@@ -38,7 +37,7 @@ export default function WelcomeScreen() {
           </View>
 
           <View style={styles.overlayText}>
-            <Text style={styles.smallLabel}><strong>AI-POWERED TRY-ON</strong></Text>
+            <Text style={[styles.smallLabel, { fontWeight: 'bold' }]}>AI-POWERED TRY-ON</Text>
 
             <Text style={styles.bigText}>Transform Your Style</Text>
             <Text style={styles.highlight}>Virtually</Text>

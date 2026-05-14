@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import BottomTab from "../comp/BottomTab.tsx";
+import BottomTab from "../comp/BottomTab";
 import React, { useEffect, useState } from "react";
 import {
   FlatList,
