@@ -229,7 +229,10 @@ export default function TryOnScreen() {
             </Text>
           </View>
 
-          <TouchableOpacity style={styles.upgradeBtn}>
+          <TouchableOpacity style={styles.upgradeBtn}
+          onPress={() => {
+            router.push('./subscription')
+          }}>
             <Text style={styles.upgradeBtnText}>
               Upgrade →
             </Text>
