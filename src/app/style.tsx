@@ -1,6 +1,5 @@
-import React, { useState,useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Animated } from 'react-native';
-import { useRef } from 'react';
 import {
   View,
   Text,
@@ -10,21 +9,32 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function StylePreferenceScreen() {
   const router = useRouter();
- const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
-    useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('selectedStyles', JSON.stringify(selectedStyles));
-    }
+  const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
+
+  // Save to AsyncStorage whenever selectedStyles changes
+  useEffect(() => {
+    const saveStyles = async () => {
+      try {
+        await AsyncStorage.setItem('selectedStyles', JSON.stringify(selectedStyles));
+        console.log('Saved styles:', selectedStyles);
+      } catch (error) {
+        console.error('Error saving styles:', error);
+      }
+    };
+    
+    saveStyles();
   }, [selectedStyles]);
+
   const stylesList = [
-        {
-    id: 'traditional',
-    name: 'Traditional',
-    desc: 'Ethnic & Festive',
-    image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?w=400',
+    {
+      id: 'traditional',
+      name: 'Traditional',
+      desc: 'Ethnic & Festive',
+      image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?w=400',
     },
     {
       id: 'modern',
@@ -46,7 +56,7 @@ export default function StylePreferenceScreen() {
     },
   ];
 
-    const toggleStyle = (id: string) => {
+  const toggleStyle = (id: string) => {
     if (selectedStyles.includes(id)) {
       setSelectedStyles(selectedStyles.filter((s) => s !== id));
     } else {
@@ -55,20 +65,21 @@ export default function StylePreferenceScreen() {
   };
 
   return (
-
-    
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <TouchableOpacity onPress={() => router.replace('./upload')}>
-            <Text style={styles.back}>←</Text>
-                    </TouchableOpacity>
-               <Text style={styles.stepText}>STEP 3 OF 4</Text>
-                     <View style={styles.progressRow}>
-                       <View style={styles.progressDot} />
-                       <View style={styles.progressDot} />
-                        <View style={styles.progressActive} />
-                       <View style={styles.progressDot} />
-                     </View>
+        <TouchableOpacity onPress={() => router.replace('./upload')}>
+          <Text style={styles.back}>←</Text>
+        </TouchableOpacity>
+        
+        <Text style={styles.stepText}>STEP 3 OF 4</Text>
+        
+        <View style={styles.progressRow}>
+          <View style={styles.progressDot} />
+          <View style={styles.progressDot} />
+          <View style={styles.progressActive} />
+          <View style={styles.progressDot} />
+        </View>
+        
         {/* Header */}
         <Text style={styles.header}>Style Preference</Text>
 
@@ -84,50 +95,49 @@ export default function StylePreferenceScreen() {
             const scale = useRef(new Animated.Value(1)).current;
             const selected = selectedStyles.includes(item.id);
 
-        // Animation here
-        const handlePressIn = () => {
-        Animated.spring(scale, {
-            toValue: 1.05,
-            useNativeDriver: true,
-        }).start();
-        };
+            const handlePressIn = () => {
+              Animated.spring(scale, {
+                toValue: 1.05,
+                useNativeDriver: true,
+              }).start();
+            };
 
-        const handlePressOut = () => {
-        Animated.spring(scale, {
-            toValue: 1,
-            useNativeDriver: true,
-        }).start();
-        };
+            const handlePressOut = () => {
+              Animated.spring(scale, {
+                toValue: 1,
+                useNativeDriver: true,
+              }).start();
+            };
+            
             return (
-                <Animated.View
-                key={item.id} style={{
-                    width: '48%',
-                    transform: [{ scale }] }}>
-              <TouchableOpacity
+              <Animated.View
                 key={item.id}
-                style={[styles.card, selected && styles.cardSelected]}
-                onPress={() => toggleStyle(item.id)}
-                onPressIn= {handlePressIn}
-                onPressOut={handlePressOut}
-                activeOpacity={0.9}
+                style={{
+                  width: '48%',
+                  transform: [{ scale }],
+                }}
               >
-                <View style={styles.imageWrapper}>
-                  <Image source={{ uri: item.image }} style={styles.image} />
-
-                  {selected && (
-                    <View style={styles.check}>
-                      <Text style={styles.checkText}>✓</Text>
-                    </View>
-                  )}
-                </View>
-
-                <Text style={[styles.name, selected && styles.nameSelected]}>
-                  {item.name}
-                </Text>
-
-                <Text style={styles.desc}>{item.desc}</Text>
-              </TouchableOpacity>
-             </Animated.View>
+                <TouchableOpacity
+                  style={[styles.card, selected && styles.cardSelected]}
+                  onPress={() => toggleStyle(item.id)}
+                  onPressIn={handlePressIn}
+                  onPressOut={handlePressOut}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.imageWrapper}>
+                    <Image source={{ uri: item.image }} style={styles.image} />
+                    {selected && (
+                      <View style={styles.check}>
+                        <Text style={styles.checkText}>✓</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[styles.name, selected && styles.nameSelected]}>
+                    {item.name}
+                  </Text>
+                  <Text style={styles.desc}>{item.desc}</Text>
+                </TouchableOpacity>
+              </Animated.View>
             );
           })}
         </View>
@@ -146,7 +156,6 @@ export default function StylePreferenceScreen() {
         >
           <Text style={styles.buttonText}>Continue →</Text>
         </TouchableOpacity>
-
       </ScrollView>
     </View>
   );
@@ -162,6 +171,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 40,
+  },
+
+  stepText: {
+    fontSize: 12,
+    color: '#FF6B8A',
+    fontWeight: '600',
+    letterSpacing: 1,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+
+  progressRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 14,
+    gap: 6,
+  },
+
+  progressActive: {
+    width: 24,
+    height: 4,
+    backgroundColor: "#FF6B8A",
+    borderRadius: 2,
+  },
+
+  progressDot: {
+    width: 6,
+    height: 4,
+    backgroundColor: "#DDD",
+    borderRadius: 2,
   },
 
   header: {
@@ -190,20 +229,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
 
- card: {
-  backgroundColor: '#F7F7F7',
-  borderRadius: 18,
-  padding: 12,
-  marginBottom: 16,
-  borderWidth: 1.5,
-  borderColor: '#E5E5E5',
-},
+  card: {
+    backgroundColor: '#F7F7F7',
+    borderRadius: 18,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: '#E5E5E5',
+  },
 
- image: {
-  width: '100%',
-  height: 150, // 🔥 increased from 110 → 150
-  borderRadius: 14,
-},
+  image: {
+    width: '100%',
+    height: 150,
+    borderRadius: 14,
+  },
 
   cardSelected: {
     borderColor: '#FF6B8A',
@@ -233,15 +272,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  
+
   back: {
     fontSize: 28,
     color: '#333',
     marginLeft: 10,
     marginTop: -5,
-    marginBottom:20
+    marginBottom: 20,
   },
-
 
   name: {
     fontSize: 14,
@@ -287,33 +325,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 15,
-  },
-   stepText: {
-    fontSize: 12,
-    color: '#FF6B8A',
-    fontWeight: '600',
-    letterSpacing: 1,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  progressRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 14,
-    gap: 6,
-  },
-
-  progressActive: {
-    width: 24,
-    height: 4,
-    backgroundColor: "#FF6B8A",
-    borderRadius: 2,
-  },
-
-  progressDot: {
-    width: 6,
-    height: 4,
-    backgroundColor: "#DDD",
-    borderRadius: 2,
   },
 });

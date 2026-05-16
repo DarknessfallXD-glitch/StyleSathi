@@ -1,50 +1,69 @@
-import React from 'react';
-import BottomTab from '../comp/BottomTab';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
+import React from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Image,
   Alert,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import Icon from 'react-native-vector-icons/FontAwesome';
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome";
+import BottomTab from "../comp/BottomTab";
 
 export default function ProfileScreen() {
   const router = useRouter();
 
   const handleLogout = () => {
-    Alert.alert('Log Out', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert("Log Out", "Are you sure you want to log out?", [
+      { text: "Cancel", style: "cancel" },
       {
-        text: 'Log Out',
-        onPress: () => router.replace('/welcome'),
-        style: 'destructive',
+        text: "Log Out",
+        onPress: async () => {
+          try {
+            // Clear user data from storage
+            await AsyncStorage.removeItem("user");
+            await AsyncStorage.removeItem("userId");
+
+            // Show success message
+            Alert.alert(
+              "Logged Out",
+              "You have been successfully logged out.",
+              [{ text: "OK", onPress: () => router.replace("/welcome") }],
+            );
+          } catch (error) {
+            console.error("Logout error:", error);
+            Alert.alert("Error", "Failed to log out. Please try again.");
+          }
+        },
+        style: "destructive",
       },
     ]);
   };
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity>
             <Icon name="bolt" size={20} color="#333" />
           </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push('./settings')}>
-    <Icon name="cog" size={20} color="#333" />
-  </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push("./settings")}>
+            <Icon name="cog" size={20} color="#333" />
+          </TouchableOpacity>
         </View>
 
         {/* Profile */}
         <View style={styles.profileSection}>
           <View style={styles.avatarWrapper}>
             <Image
-              source={{ uri: 'https://i.pravatar.cc/150' }}
+              source={{ uri: "https://i.pravatar.cc/150" }}
               style={styles.avatar}
             />
             <View style={styles.onlineDot} />
@@ -75,10 +94,9 @@ export default function ProfileScreen() {
         {/* Tabs */}
         <View style={styles.tabs}>
           <Text style={styles.tabActiveText}>My Wardrobe</Text>
-          <Text style={styles.tabTextInactive}>Saved Items</Text>
-          <TouchableOpacity onPress={() => router.push('/subscription')}>
-  <Text style={styles.tabTextInactive}>Subscription</Text>
-</TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push("/subscription")}>
+            <Text style={styles.tabTextInactive}>Subscription</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Recent Tries */}
@@ -91,7 +109,9 @@ export default function ProfileScreen() {
           <View style={styles.recentContainer}>
             <TouchableOpacity style={styles.imageCard}>
               <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9' }}
+                source={{
+                  uri: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9",
+                }}
                 style={styles.cardImage}
               />
               <Text style={styles.imageLabel}>Earrings</Text>
@@ -99,7 +119,9 @@ export default function ProfileScreen() {
 
             <TouchableOpacity style={styles.imageCard}>
               <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d' }}
+                source={{
+                  uri: "https://images.unsplash.com/photo-1611652022419-a9419f74343d",
+                }}
                 style={styles.cardImage}
               />
               <Text style={styles.imageLabel}>Necklace</Text>
@@ -122,7 +144,7 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F4F4' },
+  container: { flex: 1, backgroundColor: "#F4F4F4" },
 
   scrollContent: {
     paddingHorizontal: 20,
@@ -131,17 +153,17 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 20,
   },
 
   profileSection: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 20,
   },
 
-  avatarWrapper: { position: 'relative' },
+  avatarWrapper: { position: "relative" },
 
   avatar: {
     width: 90,
@@ -150,115 +172,115 @@ const styles = StyleSheet.create({
   },
 
   onlineDot: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 4,
     right: 4,
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: '#22C55E',
+    backgroundColor: "#22C55E",
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: "#fff",
   },
 
   userName: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     marginTop: 10,
   },
 
   memberSince: {
     fontSize: 12,
-    color: '#888',
+    color: "#888",
   },
 
   tierLink: {
-    color: '#6C63FF',
+    color: "#6C63FF",
     marginTop: 6,
   },
 
   statsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#F8F8F8',
+    flexDirection: "row",
+    backgroundColor: "#F8F8F8",
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
   },
 
-  statItem: { flex: 1, alignItems: 'center' },
+  statItem: { flex: 1, alignItems: "center" },
 
   statNumber: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
     marginTop: 6,
-    color: '#FF6B8A',
+    color: "#FF6B8A",
   },
 
   statLabel: {
     fontSize: 11,
-    color: '#888',
+    color: "#888",
   },
 
   statDivider: {
     width: 1,
-    backgroundColor: '#ddd',
+    backgroundColor: "#ddd",
   },
 
   tabs: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-evenly",
     marginBottom: 20,
   },
 
   tabActiveText: {
-    color: '#FF6B8A',
+    color: "#FF6B8A",
     borderBottomWidth: 2,
-    borderBottomColor: '#FF6B8A',
+    borderBottomColor: "#FF6B8A",
     paddingBottom: 4,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 
   tabTextInactive: {
-    color: '#999',
+    color: "#999",
   },
 
   recentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 10,
   },
 
   recentTitle: {
-    fontWeight: '600',
+    fontWeight: "600",
   },
 
   viewAllText: {
-    color: '#FF6B8A',
+    color: "#FF6B8A",
     fontSize: 12,
   },
 
   recentContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 10,
   },
 
   imageCard: {
     flex: 1,
     borderRadius: 16,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
 
   cardImage: {
-    width: '100%',
+    width: "100%",
     height: 140,
   },
 
   imageLabel: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 8,
     left: 8,
-    backgroundColor: '#00000088',
-    color: '#fff',
+    backgroundColor: "#00000088",
+    color: "#fff",
     paddingHorizontal: 8,
     borderRadius: 6,
     fontSize: 11,
@@ -266,48 +288,22 @@ const styles = StyleSheet.create({
 
   logoutButton: {
     borderWidth: 1,
-    borderColor: '#FF6B8A',
+    borderColor: "#FF6B8A",
     borderRadius: 12,
     padding: 14,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 20,
   },
 
   logoutText: {
-    color: '#FF6B8A',
-    fontWeight: '600',
+    color: "#FF6B8A",
+    fontWeight: "600",
   },
 
   versionText: {
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 10,
-    color: '#aaa',
+    color: "#aaa",
     marginTop: 20,
   },
-
-  bottomTab: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderColor: '#eee',
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',
-  },
-
-  tabItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-
-  tabText: {
-    fontSize: 10,
-    color: '#999',
-  },
-
-  tabActive: {
-    color: '#FF6B8A',
-  },
-
 });

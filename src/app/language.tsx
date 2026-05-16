@@ -9,80 +9,85 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LanguageScreen() {
   const router = useRouter();
   const [selectedLanguage, setSelectedLanguage] = useState('nepali');
   const [isLoading, setIsLoading] = useState(false);
 
-// This works on mobile (no window check needed)
-const getProfilePhoto = () => {
-  return localStorage.getItem('profilePhoto');
-};
+  // Get profile photo from AsyncStorage
+  const getProfilePhoto = async () => {
+    try {
+      const photo = await AsyncStorage.getItem('profilePhoto');
+      return photo;
+    } catch (error) {
+      console.error('Error getting profile photo:', error);
+      return null;
+    }
+  };
 
-const getSelectedStyles = () => {
-  const styles = localStorage.getItem('selectedStyles');
-  return styles ? JSON.parse(styles) : [];
-};  
+  // Get selected styles from AsyncStorage
+  const getSelectedStyles = async () => {
+    try {
+      const styles = await AsyncStorage.getItem('selectedStyles');
+      return styles ? JSON.parse(styles) : [];
+    } catch (error) {
+      console.error('Error getting selected styles:', error);
+      return [];
+    }
+  };
 
   const handleContinue = async () => {
     setIsLoading(true);
     
-    // COLLECT ALL USER PREFERENCES IN JSON FORMAT
-    const userPreferences = {
-      // Step 1: Camera/Photo
-      profilePhoto: getProfilePhoto(),
-      
-      // Step 3: Style Preferences  
-      selectedStyles: getSelectedStyles(),
-      
-      // Step 4: Language
-      selectedLanguage: selectedLanguage,
-      
-      // Metadata
-      onboardingCompleted: true,
-      completedAt: new Date().toISOString(),
-      deviceInfo: {
-        platform: 'react-native',
-        appVersion: '1.0.0',
-      },
-    };
-    
-    // LOG THE JSON - This is what you send to backend
-    console.log('========== USER PREFERENCES JSON ==========');
-    console.log(JSON.stringify(userPreferences, null, 2));
-    console.log('===========================================');
-    
-    // Show summary to user
-    Alert.alert(
-      'Preferences Saved',
-      `Language: ${selectedLanguage === 'nepali' ? 'नेपाली' : 'English'}\nStyles: ${getSelectedStyles().join(', ') || 'None selected'}\n\nCheck console for full JSON`,
-      [{ text: 'OK' }]
-    );
-    
-    // TODO: Send to backend API
-    // Uncomment when backend is ready:
-    /*
     try {
-      const response = await fetch('YOUR_BACKEND_URL/api/user/preferences', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userPreferences),
-      });
+      const profilePhoto = await getProfilePhoto();
+      const selectedStyles = await getSelectedStyles();
       
-      if (response.ok) {
-        console.log('Successfully sent to backend');
-      }
+      // COLLECT ALL USER PREFERENCES IN JSON FORMAT
+      const userPreferences = {
+        // Step 1: Camera/Photo
+        profilePhoto: profilePhoto,
+        
+        // Step 3: Style Preferences  
+        selectedStyles: selectedStyles,
+        
+        // Step 4: Language
+        selectedLanguage: selectedLanguage,
+        
+        // Metadata
+        onboardingCompleted: true,
+        completedAt: new Date().toISOString(),
+        deviceInfo: {
+          platform: 'react-native',
+          appVersion: '1.0.0',
+        },
+      };
+      
+      // LOG THE JSON - This is what you send to backend
+      console.log('========== USER PREFERENCES JSON ==========');
+      console.log(JSON.stringify(userPreferences, null, 2));
+      console.log('===========================================');
+      
+      // Save language preference to AsyncStorage
+      await AsyncStorage.setItem('selectedLanguage', selectedLanguage);
+      
+      // Show summary to user
+      Alert.alert(
+        'Preferences Saved',
+        `Language: ${selectedLanguage === 'nepali' ? 'नेपाली' : 'English'}\nStyles: ${selectedStyles.join(', ') || 'None selected'}\n\nCheck console for full JSON`,
+        [{ text: 'OK' }]
+      );
+      
     } catch (error) {
-      console.error('Backend error:', error);
+      console.error('Error saving preferences:', error);
+      Alert.alert('Error', 'Failed to save preferences. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-    */
     
-    setIsLoading(false);
-    
-    // Navigate to home/welcome
+    // Navigate to home
     router.replace('./home');
   };
 
@@ -337,4 +342,4 @@ const styles = StyleSheet.create({
     marginTop: -5,
     marginBottom: 20,
   },
-}); 
+});
