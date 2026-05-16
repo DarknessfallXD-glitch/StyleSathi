@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Icon from 'react-native-vector-icons/FontAwesome';
+import Icon from "react-native-vector-icons/FontAwesome";
 export default function WelcomeScreen() {
   const router = useRouter();
 
@@ -37,7 +37,9 @@ export default function WelcomeScreen() {
           </View>
 
           <View style={styles.overlayText}>
-            <Text style={[styles.smallLabel, { fontWeight: 'bold' }]}>AI-POWERED TRY-ON</Text>
+            <Text style={[styles.smallLabel, { fontWeight: "bold" }]}>
+              AI-POWERED TRY-ON
+            </Text>
 
             <Text style={styles.bigText}>Transform Your Style</Text>
             <Text style={styles.highlight}>Virtually</Text>
@@ -70,7 +72,7 @@ export default function WelcomeScreen() {
         {/* Button */}
         <TouchableOpacity
           style={styles.button}
-          onPress={() => router.replace("./signin")}
+          onPress={() => router.replace("./signup")}
         >
           <Text style={styles.buttonText}>Get Started →</Text>
         </TouchableOpacity>
@@ -158,7 +160,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "#ff3964",
     marginBottom: 6,
-    
   },
 
   bigText: {

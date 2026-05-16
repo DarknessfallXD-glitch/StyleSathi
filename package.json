@@ -5,19 +5,23 @@
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-navigation/bottom-tabs": "^7.15.5",
     "@react-navigation/elements": "^2.9.10",
     "@react-navigation/native": "^7.1.33",
+    "drizzle-orm": "^0.45.2",
     "expo": "~55.0.15",
+    "expo-apple-authentication": "~55.0.13",
     "expo-auth-session": "~55.0.16",
     "expo-constants": "~55.0.14",
+    "expo-dev-client": "~55.0.33",
     "expo-device": "~55.0.15",
     "expo-font": "~55.0.6",
     "expo-glass-effect": "~55.0.10",
@@ -44,6 +48,8 @@
   "devDependencies": {
     "@types/react": "~19.2.2",
     "@types/react-native-vector-icons": "^6.4.18",
+    "dotenv": "^17.4.2",
+    "drizzle-kit": "^0.31.10",
     "typescript": "~5.9.2"
   },
   "private": true
