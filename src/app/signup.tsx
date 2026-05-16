@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
+import { supabase } from "../lib/supabase";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -28,6 +29,7 @@ export default function SignUpScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [errors, setErrors] = useState<{
     name?: string;
     email?: string;
@@ -38,6 +40,7 @@ export default function SignUpScreen() {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(30));
 
+  // Google Sign-Up
   const [request, response, promptAsync] = Google.useAuthRequest({
     androidClientId:
       "478569591036-6ss1sbl1mqhuggtdm5ekun5o188ojdsl.apps.googleusercontent.com",
@@ -65,6 +68,30 @@ export default function SignUpScreen() {
       }),
     ]).start();
   }, []);
+
+  // Check if user is already logged in
+  useEffect(() => {
+    checkSession();
+  }, []);
+
+  const checkSession = async () => {
+    try {
+      if (!supabase) {
+        console.log("Supabase not configured yet");
+        return;
+      }
+      
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      
+      if (session) {
+        router.replace('/home');
+      }
+    } catch (error: any) {
+      // Silently fail - user just needs to sign up
+      console.log("Session check failed:", error.message);
+    }
+  };
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -113,8 +140,37 @@ export default function SignUpScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Helper function to handle Supabase connection errors
+  const handleSupabaseError = (error: any): string => {
+    console.error("Supabase error:", error);
+    
+    // Network/Connection errors
+    if (!error) return "Unable to connect. Please check your internet.";
+    if (error.message === "Failed to fetch") return "Network error. Please check your connection.";
+    if (error.message?.includes("network")) return "Network error. Please try again.";
+    if (error.message?.includes("timeout")) return "Connection timeout. Please try again.";
+    
+    // Supabase configuration errors
+    if (error.message?.includes("Invalid API key")) return "Authentication service is not configured yet.";
+    if (error.message?.includes("Invalid JWT")) return "Service configuration issue. Please contact support.";
+    if (error.message?.includes("URL is required")) return "Backend connection not configured.";
+    
+    // Auth errors
+    if (error.message?.includes("already registered")) return "An account with this email already exists.";
+    if (error.message?.includes("Password should be at least 6 characters")) return "Password must be at least 6 characters.";
+    if (error.message?.includes("Email not confirmed")) return "Please verify your email before signing in.";
+    
+    // Rate limiting
+    if (error.message?.includes("rate limit")) return "Too many attempts. Please try again later.";
+    
+    // Default fallback
+    return "Something went wrong. Please try again.";
+  };
+
+  // Email/Password Sign Up with Supabase
   const handleSignUp = async () => {
     setErrors({});
+    setConnectionError(null);
 
     if (!validateForm()) {
       return;
@@ -123,36 +179,65 @@ export default function SignUpScreen() {
     setIsLoading(true);
 
     try {
-      // Simulate API call - Replace with actual API
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Check if supabase is available
+      if (!supabase || !supabase.auth) {
+        throw new Error("Authentication service is not available");
+      }
+      
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password: password,
+        options: {
+          data: {
+            full_name: name.trim(),
+          },
+        },
+      });
 
+      if (error) throw error;
+
+      // Check if user already exists (identities array empty means user exists but not confirmed)
+      if (data.user?.identities?.length === 0) {
+        Alert.alert("Account Exists", "An account with this email already exists. Please sign in.");
+        router.replace("/signin");
+        return;
+      }
+      
       // Store user data locally
       const userData = {
+        id: data.user?.id,
         name: name.trim(),
         email: email.trim().toLowerCase(),
         provider: "email",
         registeredAt: new Date().toISOString(),
-        isAuthenticated: true,
+        isAuthenticated: false, // Email confirmation pending
       };
 
       await AsyncStorage.setItem("user", JSON.stringify(userData));
 
       console.log("✅ Sign up successful for:", email);
-      Alert.alert("Success", "Account created successfully!");
-      router.replace("./personalize1");
+      
+      let message = "Account created successfully!";
+      if (!data.session) {
+        message = "Account created! Please check your email to confirm your account before signing in.";
+      }
+      
+      Alert.alert("Success", message);
+      router.replace("/signin"); // Go to sign in page instead of personalize
+      
     } catch (error: any) {
       console.error("❌ Sign up error:", error);
-      Alert.alert(
-        "Sign Up Failed",
-        error.message || "Something went wrong. Please try again.",
-      );
+      const errorMessage = handleSupabaseError(error);
+      setConnectionError(errorMessage);
+      Alert.alert("Sign Up Failed", errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Google Sign-Up
+  // Google Sign-Up with Supabase
   const handleGoogleSignUp = () => {
+    setConnectionError(null);
     setGoogleLoading(true);
     promptAsync();
   };
@@ -162,30 +247,36 @@ export default function SignUpScreen() {
     if (response?.type === "success") {
       const { authentication } = response;
 
-      fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-        headers: { Authorization: `Bearer ${authentication?.accessToken}` },
-      })
-        .then((res) => res.json())
-        .then(async (userInfo) => {
+      supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: authentication?.idToken!,
+      }).then(async ({ data, error }) => {
+        if (error) throw error;
+        
+        if (data?.user) {
           const userData = {
-            id: userInfo.sub,
-            name: userInfo.name || userInfo.email?.split("@")[0],
-            email: userInfo.email,
-            picture: userInfo.picture,
+            id: data.user?.id,
+            email: data.user?.email,
+            name: data.user?.user_metadata?.full_name || data.user?.email?.split("@")[0],
             provider: "google",
             registeredAt: new Date().toISOString(),
             isAuthenticated: true,
           };
+          
           await AsyncStorage.setItem("user", JSON.stringify(userData));
           Alert.alert("Success", `Welcome ${userData.name}!`);
-          setGoogleLoading(false);
           router.replace("/personalize1");
-        })
-        .catch((err) => {
-          console.error(err);
-          Alert.alert("Error", "Failed to get Google user info");
-          setGoogleLoading(false);
-        });
+        } else {
+          throw new Error("No user data returned");
+        }
+        setGoogleLoading(false);
+      }).catch((err) => {
+        console.error(err);
+        const errorMessage = handleSupabaseError(err);
+        setConnectionError(errorMessage);
+        Alert.alert("Sign Up Failed", errorMessage);
+        setGoogleLoading(false);
+      });
     } else if (response?.type === "error") {
       setGoogleLoading(false);
       console.log("Google sign up cancelled or failed");
@@ -226,6 +317,14 @@ export default function SignUpScreen() {
         Join StyleSathy and start your virtual styling journey.
       </Text>
 
+      {/* Show connection error if any */}
+      {connectionError && (
+        <View style={styles.connectionErrorContainer}>
+          <Icon name="exclamation-triangle" size={16} color="#FF4444" />
+          <Text style={styles.connectionErrorText}>{connectionError}</Text>
+        </View>
+      )}
+
       {/* Full Name */}
       <Text style={styles.label}>Full Name</Text>
       <View style={[styles.inputBox, errors.name && styles.inputError]}>
@@ -239,6 +338,7 @@ export default function SignUpScreen() {
           onChangeText={(text) => {
             setName(text);
             if (errors.name) setErrors({ ...errors, name: undefined });
+            if (connectionError) setConnectionError(null);
           }}
         />
       </View>
@@ -257,6 +357,7 @@ export default function SignUpScreen() {
           onChangeText={(text) => {
             setEmail(text);
             if (errors.email) setErrors({ ...errors, email: undefined });
+            if (connectionError) setConnectionError(null);
           }}
           autoCapitalize="none"
           keyboardType="email-address"
@@ -278,6 +379,7 @@ export default function SignUpScreen() {
           onChangeText={(text) => {
             setPassword(text);
             if (errors.password) setErrors({ ...errors, password: undefined });
+            if (connectionError) setConnectionError(null);
           }}
         />
         <TouchableOpacity onPress={() => setSecure(!secure)}>
@@ -305,6 +407,7 @@ export default function SignUpScreen() {
             setConfirmPassword(text);
             if (errors.confirmPassword)
               setErrors({ ...errors, confirmPassword: undefined });
+            if (connectionError) setConnectionError(null);
           }}
         />
         <TouchableOpacity onPress={() => setConfirmSecure(!confirmSecure)}>
@@ -460,6 +563,22 @@ const styles = StyleSheet.create({
     marginTop: -12,
     marginBottom: 8,
     marginLeft: 4,
+  },
+  connectionErrorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF0F0",
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#FF4444",
+  },
+  connectionErrorText: {
+    fontSize: 12,
+    color: "#FF4444",
+    flex: 1,
   },
   button: {
     backgroundColor: "#FF6B8A",

@@ -23,7 +23,7 @@ export default function BottomTab({ active }) {
           <TouchableOpacity
             key={tab.name}
             style={styles.tabItem}
-            onPress={() => router.push(tab.route)}
+            onPress={() => router.replace(tab.route)}
             activeOpacity={0.7}
           >
             <Icon
