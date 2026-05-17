@@ -79,7 +79,7 @@ export default function SavedScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity onPress={() => router.replace('./try-on')}>
             <Icon name="arrow-left" size={22} color="#333" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Saved Items</Text>

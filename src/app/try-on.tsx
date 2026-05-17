@@ -135,7 +135,7 @@ export default function TryOnScreen() {
       >
         {/* HEADER */}
         <View style={styles.topRow}>
-          <TouchableOpacity>
+          <TouchableOpacity  onPress={() => router.replace('./search-result')}>
             <Icon name="chevron-left" size={18} color="#222" />
           </TouchableOpacity>
 
