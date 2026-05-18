@@ -12,12 +12,14 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { useTheme } from '../Context/ThemeContext';
+import { ThemedText } from '../comp/ThemedText';
 
 const { width } = Dimensions.get('window');
 
 export default function TryOnScreen() {
   const router = useRouter();
-
+  const { colors, isDarkMode } = useTheme();
   const scrollX = useRef(new Animated.Value(0)).current;
 
   const tryOnResults = [
@@ -84,6 +86,7 @@ export default function TryOnScreen() {
         style={[
           styles.resultCard,
           {
+            backgroundColor: colors.surface,
             transform: [{ scale }, { translateY }],
             opacity,
           },
@@ -92,31 +95,25 @@ export default function TryOnScreen() {
         <Image source={{ uri: item.image }} style={styles.resultImage} />
 
         {item.isAiGenerated && (
-          <View style={styles.aiTag}>
+          <View style={[styles.aiTag, { backgroundColor: colors.primary }]}>
             <Icon name="magic" size={10} color="#fff" />
-
             <Text style={styles.aiTagText}>
               AI Generated
             </Text>
           </View>
         )}
 
-        <View style={styles.bottomInfo}>
-          <Text style={styles.resultName}>
+        <View style={[styles.bottomInfo, { backgroundColor: colors.surface }]}>
+          <ThemedText style={styles.resultName}>
             {item.name}
-          </Text>
+          </ThemedText>
 
-          <Text style={styles.resultPrice}>
+          <ThemedText style={[styles.resultPrice, { color: colors.primary }]}>
             {item.price}
-          </Text>
+          </ThemedText>
 
-          <TouchableOpacity style={styles.buyButton}>
-            <Icon
-              name="shopping-cart"
-              size={14}
-              color="#fff"
-            />
-
+          <TouchableOpacity style={[styles.buyButton, { backgroundColor: colors.primary }]}>
+            <Icon name="shopping-cart" size={14} color="#fff" />
             <Text style={styles.buyButtonText}>
               Buy Now
             </Text>
@@ -127,7 +124,7 @@ export default function TryOnScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         bounces={false}
         showsVerticalScrollIndicator={false}
@@ -135,38 +132,37 @@ export default function TryOnScreen() {
       >
         {/* HEADER */}
         <View style={styles.topRow}>
-          <TouchableOpacity  onPress={() => router.replace('./search-result')}>
-            <Icon name="chevron-left" size={18} color="#222" />
+          <TouchableOpacity onPress={() => router.replace('./search-result')}>
+            <Icon name="chevron-left" size={18} color={colors.icon} />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>
+          <ThemedText style={styles.headerTitle}>
             Your Style Try-On
-          </Text>
+          </ThemedText>
 
-          <View style={styles.tryBadge}>
-            <Text style={styles.tryBadgeText}>
+          <View style={[styles.tryBadge, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.tryBadgeText, { color: colors.textSecondary }]}>
               2/3 TRIES
             </Text>
           </View>
         </View>
 
         {/* MAGIC BADGE */}
-        <View style={styles.magicBadge}>
-          <Icon name="magic" size={14} color="#FF5C93" />
-
-          <Text style={styles.magicText}>
+        <View style={[styles.magicBadge, { backgroundColor: colors.surface }]}>
+          <Icon name="magic" size={14} color={colors.primary} />
+          <Text style={[styles.magicText, { color: colors.primary }]}>
             AI Magic Ready
           </Text>
         </View>
 
         {/* TITLE */}
-        <Text style={styles.generatedTitle}>
+        <ThemedText style={styles.generatedTitle}>
           Generated Results
-        </Text>
+        </ThemedText>
 
-        <Text style={styles.generatedSubtitle}>
+        <ThemedText type="secondary" style={styles.generatedSubtitle}>
           Swipe to see how these styles look on you.
-        </Text>
+        </ThemedText>
 
         {/* ANIMATED CAROUSEL */}
         <Animated.FlatList
@@ -196,43 +192,41 @@ export default function TryOnScreen() {
 
         {/* ANALYTICS */}
         <View style={styles.analyticsRow}>
-          <View style={styles.analyticsCard}>
-            <Text style={styles.analyticsLabel}>
+          <View style={[styles.analyticsCard, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.analyticsLabel, { color: colors.textSecondary }]}>
               TOTAL TRIES TODAY
             </Text>
-
-            <Text style={styles.analyticsValue}>
+            <ThemedText style={styles.analyticsValue}>
               12 Generative Fits
-            </Text>
+            </ThemedText>
           </View>
 
-          <View style={styles.analyticsCard}>
-            <Text style={styles.analyticsLabel}>
+          <View style={[styles.analyticsCard, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.analyticsLabel, { color: colors.textSecondary }]}>
               BEST MATCH
             </Text>
-
-            <Text style={styles.analyticsPink}>
+            <ThemedText style={[styles.analyticsPink, { color: colors.primary }]}>
               Traditional
-            </Text>
+            </ThemedText>
           </View>
         </View>
 
         {/* UPGRADE */}
-        <View style={styles.upgradeBanner}>
+        <View style={[styles.upgradeBanner, { backgroundColor: colors.surface }]}>
           <View>
-            <Text style={styles.upgradeTitle}>
+            <ThemedText style={styles.upgradeTitle}>
               Unlimited styling
-            </Text>
-
-            <Text style={styles.upgradeSub}>
+            </ThemedText>
+            <ThemedText type="secondary" style={styles.upgradeSub}>
               Only ₹99/month
-            </Text>
+            </ThemedText>
           </View>
 
-          <TouchableOpacity style={styles.upgradeBtn}
-          onPress={() => {
-            router.push('./subscription')
-          }}>
+          <TouchableOpacity 
+            style={[styles.upgradeBtn, { backgroundColor: colors.primary }]}
+            onPress={() => {
+              router.push('./subscription')
+            }}>
             <Text style={styles.upgradeBtnText}>
               Upgrade →
             </Text>
@@ -249,7 +243,6 @@ export default function TryOnScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
 
   scrollContent: {
@@ -270,11 +263,9 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222',
   },
 
   tryBadge: {
-    backgroundColor: '#F5F5F5',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
@@ -283,7 +274,6 @@ const styles = StyleSheet.create({
   tryBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#777',
   },
 
   /* MAGIC BADGE */
@@ -292,7 +282,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: '#FFF0F5',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
@@ -301,7 +290,6 @@ const styles = StyleSheet.create({
 
   magicText: {
     marginLeft: 8,
-    color: '#FF5C93',
     fontWeight: '700',
     fontSize: 13,
   },
@@ -311,13 +299,11 @@ const styles = StyleSheet.create({
   generatedTitle: {
     fontSize: 30,
     fontWeight: '800',
-    color: '#222',
     marginBottom: 8,
   },
 
   generatedSubtitle: {
     fontSize: 14,
-    color: '#888',
     marginBottom: 24,
   },
 
@@ -331,11 +317,9 @@ const styles = StyleSheet.create({
 
   resultCard: {
     width: width * 0.68,
-    backgroundColor: '#fff',
     borderRadius: 24,
     overflow: 'hidden',
     marginRight: 18,
-
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 18,
@@ -343,7 +327,6 @@ const styles = StyleSheet.create({
       width: 0,
       height: 10,
     },
-
     elevation: 6,
   },
 
@@ -357,11 +340,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     left: 16,
-
     flexDirection: 'row',
     alignItems: 'center',
-
-    backgroundColor: '#FF5C93',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
@@ -376,28 +356,23 @@ const styles = StyleSheet.create({
 
   bottomInfo: {
     padding: 18,
-    backgroundColor: '#fff',
   },
 
   resultName: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222',
     marginBottom: 6,
   },
 
   resultPrice: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#FF5C93',
     marginBottom: 16,
   },
 
   buyButton: {
     height: 48,
-    backgroundColor: '#FF5C93',
     borderRadius: 999,
-
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -420,7 +395,6 @@ const styles = StyleSheet.create({
 
   analyticsCard: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
     borderRadius: 22,
     padding: 16,
   },
@@ -428,30 +402,25 @@ const styles = StyleSheet.create({
   analyticsLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#999',
     marginBottom: 10,
   },
 
   analyticsValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222',
   },
 
   analyticsPink: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FF5C93',
   },
 
   /* UPGRADE */
 
   upgradeBanner: {
     marginTop: 28,
-    backgroundColor: '#FFD9E5',
     borderRadius: 24,
     padding: 20,
-
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -460,25 +429,22 @@ const styles = StyleSheet.create({
   upgradeTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222',
   },
 
   upgradeSub: {
     marginTop: 4,
     fontSize: 13,
-    color: '#9C4B68',
     fontWeight: '600',
   },
 
   upgradeBtn: {
-    backgroundColor: '#fff',
     paddingHorizontal: 18,
     paddingVertical: 11,
     borderRadius: 999,
   },
 
   upgradeBtnText: {
-    color: '#FF5C93',
+    color: '#fff',
     fontWeight: '700',
     fontSize: 14,
   },

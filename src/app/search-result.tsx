@@ -15,13 +15,13 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { useTheme } from '../Context/ThemeContext';
+import { ThemedText } from '../comp/ThemedText';
 import { 
   searchProducts, 
-  getFeaturedItems, 
   filterByCategory, 
   sortProducts,
   SearchProduct,
-  FEATURED_ITEMS as STATIC_FEATURED,
   ALL_PRODUCTS as STATIC_PRODUCTS
 } from '../services/searchData';
 
@@ -38,13 +38,14 @@ const SORT_OPTIONS = [
 
 export default function SearchResultsScreen() {
   const router = useRouter();
+  const { colors, isDarkMode } = useTheme();
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [wishlistStatus, setWishlistStatus] = useState<{ [key: number]: boolean }>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchProduct[]>([]);
   const [filteredResults, setFilteredResults] = useState<SearchProduct[]>([]);
-  const [featuredItems, setFeaturedItems] = useState<SearchProduct[]>([]);
+  const [topResults, setTopResults] = useState<SearchProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -65,22 +66,21 @@ export default function SearchResultsScreen() {
   const loadInitialData = async () => {
     setLoading(true);
     try {
-      // Load featured items
-      const featured = await getFeaturedItems();
-      setFeaturedItems(featured);
-      
-      // Load all products as initial search results
       setSearchResults(STATIC_PRODUCTS);
       setFilteredResults(STATIC_PRODUCTS);
-      
-      // Check wishlist status
+      const top4 = [...STATIC_PRODUCTS]
+        .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+        .slice(0, 4);
+      setTopResults(top4);
       await checkWishlistStatus(STATIC_PRODUCTS);
     } catch (error) {
       console.error('Error loading data:', error);
-      // Fallback to static data
-      setFeaturedItems(featuredItems);
       setSearchResults(STATIC_PRODUCTS);
       setFilteredResults(STATIC_PRODUCTS);
+      const top4 = [...STATIC_PRODUCTS]
+        .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+        .slice(0, 4);
+      setTopResults(top4);
       await checkWishlistStatus(STATIC_PRODUCTS);
     } finally {
       setLoading(false);
@@ -94,14 +94,24 @@ export default function SearchResultsScreen() {
     try {
       const results = await searchProducts(text);
       setSearchResults(results);
+      const top4 = [...results]
+        .sort((a, b) => {
+          const aNameMatch = a.name.toLowerCase().includes(text.toLowerCase()) ? 1 : 0;
+          const bNameMatch = b.name.toLowerCase().includes(text.toLowerCase()) ? 1 : 0;
+          if (aNameMatch !== bNameMatch) return bNameMatch - aNameMatch;
+          return (b.rating || 0) - (a.rating || 0);
+        })
+        .slice(0, 4);
+      setTopResults(top4);
     } catch (error) {
       console.error('Search error:', error);
-      // Fallback: local search in static data
       const fallbackResults = STATIC_PRODUCTS.filter(p => 
         p.name.toLowerCase().includes(text.toLowerCase()) ||
         p.category.toLowerCase().includes(text.toLowerCase())
       );
       setSearchResults(fallbackResults);
+      const top4 = [...fallbackResults].slice(0, 4);
+      setTopResults(top4);
     } finally {
       setSearching(false);
     }
@@ -109,18 +119,15 @@ export default function SearchResultsScreen() {
 
   const applyFilters = () => {
     let results = [...searchResults];
-    
-    // Apply category filter
     if (selectedCategory && selectedCategory !== 'All') {
       results = filterByCategory(results, selectedCategory);
     }
-    
-    // Apply sorting
     if (selectedSort) {
       results = sortProducts(results, selectedSort);
     }
-    
     setFilteredResults(results);
+    const top4 = [...results].slice(0, 4);
+    setTopResults(top4);
   };
 
   const checkWishlistStatus = async (products: SearchProduct[]) => {
@@ -133,10 +140,8 @@ export default function SearchResultsScreen() {
 
   const toggleWishlist = async (item: SearchProduct) => {
     const isWishlisted = wishlistStatus[item.id];
-    
     if (isWishlisted) {
       await removeFromWishlist(item.id);
-      console.log('Removed from wishlist:', item.name);
     } else {
       await addToWishlist({
         id: item.id,
@@ -145,9 +150,7 @@ export default function SearchResultsScreen() {
         category: item.category,
         image: item.image,
       });
-      console.log('Added to wishlist:', item.name);
     }
-    
     setWishlistStatus(prev => ({
       ...prev,
       [item.id]: !isWishlisted
@@ -177,44 +180,49 @@ export default function SearchResultsScreen() {
   };
 
   const renderFeaturedItem = ({ item }: { item: SearchProduct }) => (
-    <TouchableOpacity style={styles.featuredContainer} activeOpacity={0.8}>
+    <TouchableOpacity style={[styles.featuredContainer, { backgroundColor: colors.surface }]} activeOpacity={0.8}>
       <Image source={{ uri: item.image }} style={styles.featuredImage} />
       <View style={styles.featuredBadge}>
-        <Icon name="check-circle" size={14} color="#FF6B8A" />
-        <Text style={styles.featuredBadgeText}>AI VERIFIED</Text>
+        <Icon name="check-circle" size={14} color={colors.primary} />
+        <Text style={styles.featuredBadgeText}>TOP PICK</Text>
       </View>
       <View style={styles.featuredInfo}>
-        <Text style={styles.featuredCategory}>{item.category}</Text>
-        <Text style={styles.featuredName}>{item.name}</Text>
-        <Text style={styles.featuredPrice}>{item.price}</Text>
-        <TouchableOpacity style={styles.buyNowButton}>
-          <Text style={styles.buyNowText}>Buy Now</Text>
+        <Text style={[styles.featuredCategory, { color: colors.textSecondary }]}>{item.category}</Text>
+        <Text style={[styles.featuredName, { color: colors.text }]}>{item.name}</Text>
+        <Text style={[styles.featuredPrice, { color: colors.primary }]}>{item.price}</Text>
+        {item.rating && (
+          <View style={styles.featuredRating}>
+            <Icon name="star" size={12} color="#FFD700" />
+            <Text style={[styles.featuredRatingText, { color: colors.textSecondary }]}>{item.rating}</Text>
+          </View>
+        )}
+        <TouchableOpacity style={[styles.buyNowButton, { backgroundColor: colors.primary }]}>
+          <Text style={styles.buyNowText}>View Details</Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
 
-  const renderProductCard = ({ item }: { item: SearchProduct }) => {
+  const renderProductCard = (item: SearchProduct) => {
     const isWishlisted = wishlistStatus[item.id] || false;
     
     return (
       <View key={item.id} style={{ width: CARD_WIDTH }}>
-        <TouchableOpacity style={styles.card} activeOpacity={0.8}>
+        <TouchableOpacity style={[styles.card, { backgroundColor: colors.surface }]} activeOpacity={0.8}>
           <View style={styles.imageContainer}>
-  {item.image ? (
-    <Image source={{ uri: item.image }} style={styles.cardImage} />
-  ) : (
-    <View style={[styles.cardImage, styles.noImageContainer]}>
-      <Icon name="picture-o" size={35} color="#CCC" />
-      <Text style={styles.noImageText}>Image not available</Text>
-    </View>
-  )}
-  
-  {item.isNew && (
-    <View style={styles.newBadge}>
-      <Text style={styles.newBadgeText}>NEW</Text>
-    </View>
-  )}
+            {item.image ? (
+              <Image source={{ uri: item.image }} style={styles.cardImage} />
+            ) : (
+              <View style={[styles.cardImage, styles.noImageContainer, { backgroundColor: colors.inputBackground }]}>
+                <Icon name="picture-o" size={35} color={colors.textSecondary} />
+                <Text style={[styles.noImageText, { color: colors.textSecondary }]}>No Image</Text>
+              </View>
+            )}
+            {item.isNew && (
+              <View style={styles.newBadge}>
+                <Text style={styles.newBadgeText}>NEW</Text>
+              </View>
+            )}
             {item.isAiTryOn && (
               <View style={styles.aiBadge}>
                 <Icon name="magic" size={8} color="#FFFFFF" />
@@ -228,29 +236,29 @@ export default function SearchResultsScreen() {
               </View>
             )}
             <TouchableOpacity 
-              style={styles.wishlistIcon}
+              style={[styles.wishlistIcon, { backgroundColor: colors.surface }]}
               onPress={() => toggleWishlist(item)}
             >
               <Icon 
                 name={isWishlisted ? "heart" : "heart-o"} 
                 size={16} 
-                color="#FF6B8A" 
+                color={colors.primary} 
               />
             </TouchableOpacity>
           </View>
           <View style={styles.cardInfo}>
-            <Text style={styles.cardCategory}>{item.category}</Text>
-            <Text style={styles.cardName}>{item.name}</Text>
+            <Text style={[styles.cardCategory, { color: colors.textSecondary }]}>{item.category}</Text>
+            <Text style={[styles.cardName, { color: colors.text }]}>{item.name}</Text>
             {item.rating && (
               <View style={styles.ratingContainer}>
                 <Icon name="star" size={10} color="#FFD700" />
-                <Text style={styles.ratingText}>{item.rating}</Text>
+                <Text style={[styles.ratingText, { color: colors.textSecondary }]}>{item.rating}</Text>
               </View>
             )}
             <View style={styles.cardBottom}>
-              <Text style={styles.cardPrice}>{item.price}</Text>
+              <Text style={[styles.cardPrice, { color: colors.primary }]}>{item.price}</Text>
               <TouchableOpacity>
-                <Text style={styles.detailsText}>Details</Text>
+                <Text style={[styles.detailsText, { color: colors.primary }]}>Details</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -261,15 +269,15 @@ export default function SearchResultsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#FF6B8A" />
-        <Text style={styles.loadingText}>Loading products...</Text>
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <ThemedText style={styles.loadingText}>Loading products...</ThemedText>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -277,26 +285,26 @@ export default function SearchResultsScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.replace('./home')}>
-            <Icon name="arrow-left" size={22} color="#333" />
+            <Icon name="arrow-left" size={22} color={colors.icon} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Search Results</Text>
+          <ThemedText style={styles.headerTitle}>Search Results</ThemedText>
           <View style={{ width: 22 }} />
         </View>
 
         {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Icon name="search" size={18} color="#999" style={styles.searchIcon} />
+        <View style={[styles.searchContainer, { backgroundColor: colors.surface }]}>
+          <Icon name="search" size={18} color={colors.placeholder} style={styles.searchIcon} />
           <TextInput
             placeholder="Search for jewelry..."
-            placeholderTextColor="#999"
-            style={styles.searchInput}
+            placeholderTextColor={colors.placeholder}
+            style={[styles.searchInput, { color: colors.inputText }]}
             value={searchQuery}
             onChangeText={handleSearch}
           />
-          {searching && <ActivityIndicator size="small" color="#FF6B8A" />}
+          {searching && <ActivityIndicator size="small" color={colors.primary} />}
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => handleSearch('')}>
-              <Icon name="times-circle" size={16} color="#999" />
+              <Icon name="times-circle" size={16} color={colors.placeholder} />
             </TouchableOpacity>
           )}
         </View>
@@ -304,38 +312,38 @@ export default function SearchResultsScreen() {
         {/* Filter Bar */}
         <View style={styles.filterBar}>
           <TouchableOpacity 
-            style={[styles.filterChip, selectedCategory && styles.activeFilterChip]}
+            style={[styles.filterChip, { backgroundColor: colors.surface, borderColor: colors.border }, selectedCategory && styles.activeFilterChip]}
             onPress={() => setShowCategoryMenu(!showCategoryMenu)}
           >
-            <Text style={[styles.filterText, selectedCategory && styles.activeFilterText]}>
+            <Text style={[styles.filterText, { color: selectedCategory ? "#FFF" : colors.textSecondary }, selectedCategory && styles.activeFilterText]}>
               {selectedCategory ? `${selectedCategory} ✓` : 'Category ▼'}
             </Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={[styles.filterChip, selectedSort && styles.activeFilterChip]}
+            style={[styles.filterChip, { backgroundColor: colors.surface, borderColor: colors.border }, selectedSort && styles.activeFilterChip]}
             onPress={() => setShowSortMenu(!showSortMenu)}
           >
-            <Text style={[styles.filterText, selectedSort && styles.activeFilterText]}>
+            <Text style={[styles.filterText, { color: selectedSort ? "#FFF" : colors.textSecondary }, selectedSort && styles.activeFilterText]}>
               {getSortButtonText()}
             </Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={styles.filterChip}
+            style={[styles.filterChip, { backgroundColor: colors.surface, borderColor: colors.border }]}
             onPress={() => {
               setSelectedCategory(null);
               setSelectedSort(null);
               setSearchQuery('');
             }}
           >
-            <Text style={styles.filterText}>Clear</Text>
+            <Text style={[styles.filterText, { color: colors.textSecondary }]}>Clear</Text>
           </TouchableOpacity>
         </View>
 
         {/* Category Dropdown Menu */}
         {showCategoryMenu && (
-          <View style={styles.dropdownMenu}>
+          <View style={[styles.dropdownMenu, { backgroundColor: colors.surface }]}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {CATEGORIES.map((category) => (
                 <TouchableOpacity
@@ -348,6 +356,7 @@ export default function SearchResultsScreen() {
                 >
                   <Text style={[
                     styles.dropdownText,
+                    { color: selectedCategory === category ? "#FFF" : colors.text },
                     selectedCategory === category && styles.dropdownTextActive
                   ]}>
                     {category}
@@ -360,7 +369,7 @@ export default function SearchResultsScreen() {
 
         {/* Sort Dropdown Menu */}
         {showSortMenu && (
-          <View style={styles.dropdownMenu}>
+          <View style={[styles.dropdownMenu, { backgroundColor: colors.surface }]}>
             {SORT_OPTIONS.map((option) => (
               <TouchableOpacity
                 key={option.id}
@@ -370,9 +379,10 @@ export default function SearchResultsScreen() {
                 ]}
                 onPress={() => handleSortSelect(option.id)}
               >
-                <Icon name={option.icon} size={14} color={selectedSort === option.id ? "#FFFFFF" : "#666"} />
+                <Icon name={option.icon} size={14} color={selectedSort === option.id ? "#FFF" : colors.icon} />
                 <Text style={[
                   styles.dropdownText,
+                  { color: selectedSort === option.id ? "#FFF" : colors.text },
                   selectedSort === option.id && styles.dropdownTextActive
                 ]}>
                   {option.label}
@@ -383,17 +393,21 @@ export default function SearchResultsScreen() {
         )}
 
         {/* Results Count */}
-        <Text style={styles.resultsTitle}>Showing Results</Text>
-        <Text style={styles.resultsCount}>
+        <ThemedText style={styles.resultsTitle}>Showing Results</ThemedText>
+        <ThemedText type="secondary" style={styles.resultsCount}>
           Found {filteredResults.length} stunning {filteredResults.length === 1 ? 'piece' : 'pieces'} for you
-        </Text>
+        </ThemedText>
 
-        {/* Horizontally Scrollable Featured Items */}
-        {featuredItems.length > 0 && (
+        {/* TOP RESULTS */}
+        {topResults.length > 0 && (
           <View>
+            <View style={styles.topResultsHeader}>
+              <Icon name="trophy" size={16} color={colors.primary} />
+              <Text style={[styles.topResultsTitle, { color: colors.primary }]}>Top Results</Text>
+            </View>
             <FlatList
               ref={flatListRef}
-              data={featuredItems}
+              data={topResults}
               renderItem={renderFeaturedItem}
               keyExtractor={(item) => item.id.toString()}
               horizontal
@@ -406,12 +420,13 @@ export default function SearchResultsScreen() {
             />
             
             <View style={styles.indicatorContainer}>
-              {featuredItems.map((_, index) => (
+              {topResults.map((_, index) => (
                 <View
                   key={index}
                   style={[
                     styles.indicatorDot,
-                    currentIndex === index && styles.indicatorDotActive,
+                    { backgroundColor: colors.textSecondary },
+                    currentIndex === index && styles.indicatorDotActive
                   ]}
                 />
               ))}
@@ -421,14 +436,20 @@ export default function SearchResultsScreen() {
 
         {/* Search Results Grid */}
         {filteredResults.length > 0 ? (
-          <View style={styles.gridContainer}>
-            {filteredResults.map((item) => renderProductCard({ item }))}
-          </View>
+          <>
+            <View style={styles.allResultsHeader}>
+              <Icon name="list" size={14} color={colors.textSecondary} />
+              <Text style={[styles.allResultsTitle, { color: colors.textSecondary }]}>All Results ({filteredResults.length})</Text>
+            </View>
+            <View style={styles.gridContainer}>
+              {filteredResults.map((item) => renderProductCard(item))}
+            </View>
+          </>
         ) : (
           <View style={styles.emptyContainer}>
-            <Icon name="search" size={50} color="#CCC" />
-            <Text style={styles.emptyTitle}>No results found</Text>
-            <Text style={styles.emptyText}>
+            <Icon name="search" size={50} color={colors.textSecondary} />
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No results found</Text>
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
               Try searching for "earrings", "necklace", or "gold"
             </Text>
           </View>
@@ -437,8 +458,8 @@ export default function SearchResultsScreen() {
         {/* End of Results */}
         {filteredResults.length > 0 && (
           <>
-            <Text style={styles.endText}>End of Results ▼</Text>
-            <Text style={styles.endSubtext}>
+            <Text style={[styles.endText, { color: colors.primary }]}>End of Results ▼</Text>
+            <Text style={[styles.endSubtext, { color: colors.textSecondary }]}>
               Can't find what you're looking for? Try searching with different keywords.
             </Text>
           </>
@@ -453,7 +474,6 @@ export default function SearchResultsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F4F4',
   },
   scrollContent: {
     paddingBottom: 80,
@@ -469,12 +489,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#2F343A',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 30,
     paddingHorizontal: 16,
     height: 50,
@@ -492,7 +510,6 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#333',
     paddingVertical: 12,
   },
   filterBar: {
@@ -505,10 +522,8 @@ const styles = StyleSheet.create({
   filterChip: {
     paddingHorizontal: 14,
     paddingVertical: 7,
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
   },
   activeFilterChip: {
     backgroundColor: '#FF6B8A',
@@ -516,13 +531,11 @@ const styles = StyleSheet.create({
   },
   filterText: {
     fontSize: 12,
-    color: '#666',
   },
   activeFilterText: {
     color: '#FFFFFF',
   },
   dropdownMenu: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     marginHorizontal: 20,
     marginBottom: 12,
@@ -546,7 +559,6 @@ const styles = StyleSheet.create({
   },
   dropdownText: {
     fontSize: 13,
-    color: '#666',
   },
   dropdownTextActive: {
     color: '#FFFFFF',
@@ -554,15 +566,36 @@ const styles = StyleSheet.create({
   resultsTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#2F343A',
     paddingHorizontal: 20,
     marginBottom: 4,
   },
   resultsCount: {
     fontSize: 13,
-    color: '#888',
     paddingHorizontal: 20,
     marginBottom: 16,
+  },
+  topResultsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+    gap: 8,
+  },
+  topResultsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  allResultsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 12,
+    gap: 8,
+  },
+  allResultsTitle: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   featuredList: {
     paddingHorizontal: 20,
@@ -571,14 +604,18 @@ const styles = StyleSheet.create({
   },
   featuredContainer: {
     width: width - 40,
-    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     overflow: 'hidden',
     marginRight: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   featuredImage: {
     width: '100%',
-    height: 220,
+    height: 250,
     resizeMode: 'cover',
   },
   featuredBadge: {
@@ -589,7 +626,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   featuredBadgeText: {
-    color: '#FF6B8A',
+    color: 'grey',
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1,
@@ -600,7 +637,6 @@ const styles = StyleSheet.create({
   },
   featuredCategory: {
     fontSize: 11,
-    color: '#999',
     fontWeight: '500',
     letterSpacing: 0.5,
     marginTop: 4,
@@ -609,17 +645,23 @@ const styles = StyleSheet.create({
   featuredName: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#2F343A',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   featuredPrice: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#FF6B8A',
+    marginBottom: 6,
+  },
+  featuredRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     marginBottom: 12,
   },
+  featuredRatingText: {
+    fontSize: 13,
+  },
   buyNowButton: {
-    backgroundColor: '#FF6B8A',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 25,
@@ -640,7 +682,6 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#DDD',
     marginHorizontal: 4,
   },
   indicatorDotActive: {
@@ -654,7 +695,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 16,
@@ -726,7 +766,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 8,
     right: 8,
-    backgroundColor: 'rgba(255,255,255,0.9)',
     width: 28,
     height: 28,
     borderRadius: 14,
@@ -739,7 +778,6 @@ const styles = StyleSheet.create({
   },
   cardCategory: {
     fontSize: 10,
-    color: '#999',
     fontWeight: '500',
     letterSpacing: 0.5,
     marginBottom: 4,
@@ -747,7 +785,6 @@ const styles = StyleSheet.create({
   cardName: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#2F343A',
     marginBottom: 4,
   },
   ratingContainer: {
@@ -758,7 +795,6 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 11,
-    color: '#888',
   },
   cardBottom: {
     flexDirection: 'row',
@@ -768,16 +804,13 @@ const styles = StyleSheet.create({
   cardPrice: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FF6B8A',
   },
   detailsText: {
     fontSize: 12,
-    color: '#FF6B8A',
     fontWeight: '600',
   },
   endText: {
     fontSize: 13,
-    color: '#FF6B8A',
     fontWeight: '600',
     textAlign: 'center',
     marginTop: 16,
@@ -785,7 +818,6 @@ const styles = StyleSheet.create({
   },
   endSubtext: {
     fontSize: 11,
-    color: '#999',
     textAlign: 'center',
     marginHorizontal: 40,
     marginBottom: 20,
@@ -795,12 +827,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F4F4F4',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: '#888',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -811,23 +841,19 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#999',
     marginTop: 16,
   },
   emptyText: {
     fontSize: 14,
-    color: '#BBB',
     marginTop: 8,
     textAlign: 'center',
   },
   noImageContainer: {
-  backgroundColor: '#F5F5F5',
-  justifyContent: 'center',
-  alignItems: 'center',
-},
-noImageText: {
-  fontSize: 12,
-  color: '#999',
-  marginTop: 8,
-},
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noImageText: {
+    fontSize: 12,
+    marginTop: 8,
+  },
 });

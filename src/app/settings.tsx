@@ -11,13 +11,15 @@ import {
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme } from '../Context/ThemeContext';
+import { ThemedText } from '../comp/ThemedText';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { colors, isDarkMode, toggleTheme } = useTheme();
   
   // Settings states
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [saveHistory, setSaveHistory] = useState(true);
   const [language, setLanguage] = useState('English');
@@ -34,10 +36,10 @@ export default function SettingsScreen() {
       if (settings) {
         const parsed = JSON.parse(settings);
         setNotificationsEnabled(parsed.notificationsEnabled ?? true);
-        setDarkModeEnabled(parsed.darkModeEnabled ?? false);
         setEmailNotifications(parsed.emailNotifications ?? true);
         setSaveHistory(parsed.saveHistory ?? true);
         setSelectedLanguage(parsed.selectedLanguage ?? 'english');
+        setLanguage(parsed.language ?? 'English');
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -62,9 +64,8 @@ export default function SettingsScreen() {
   };
 
   const handleToggleDarkMode = (value: boolean) => {
-    setDarkModeEnabled(value);
+    toggleTheme(); // Use the theme context toggle
     saveSetting('darkModeEnabled', value);
-    Alert.alert('Coming Soon', 'Dark mode will be available in the next update!');
   };
 
   const handleToggleEmailNotifications = (value: boolean) => {
@@ -77,9 +78,11 @@ export default function SettingsScreen() {
     saveSetting('saveHistory', value);
   };
 
-  const handleLanguageSelect = (lang: string) => {
+  const handleLanguageSelect = (lang: string, langCode: string) => {
     setLanguage(lang);
+    setSelectedLanguage(langCode);
     saveSetting('language', lang);
+    saveSetting('selectedLanguage', langCode);
     Alert.alert('Language Changed', `Language set to ${lang}`);
   };
 
@@ -93,7 +96,6 @@ export default function SettingsScreen() {
           text: 'Clear',
           onPress: async () => {
             try {
-              // Clear only cache, not wishlist
               const wishlist = await AsyncStorage.getItem('wishlist');
               await AsyncStorage.clear();
               if (wishlist) {
@@ -128,39 +130,39 @@ export default function SettingsScreen() {
     onValueChange?: (value: boolean) => void;
   }) => (
     <TouchableOpacity 
-      style={styles.settingItem} 
+      style={[styles.settingItem, { backgroundColor: colors.surface }]} 
       onPress={onPress}
       disabled={type === 'toggle'}
       activeOpacity={type === 'toggle' ? 1 : 0.7}
     >
       <View style={styles.settingLeft}>
-        <View style={styles.settingIcon}>
-          <Icon name={icon} size={20} color="#FF6B8A" />
+        <View style={[styles.settingIcon, { backgroundColor: colors.surface }]}>
+          <Icon name={icon} size={20} color={colors.primary} />
         </View>
         <View style={styles.settingTextContainer}>
-          <Text style={styles.settingTitle}>{title}</Text>
-          {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
+          <ThemedText style={styles.settingTitle}>{title}</ThemedText>
+          {subtitle && <ThemedText type="secondary" style={styles.settingSubtitle}>{subtitle}</ThemedText>}
         </View>
       </View>
       {type === 'toggle' && (
         <Switch
           value={value}
           onValueChange={onValueChange}
-          trackColor={{ false: '#E5E5E5', true: '#FF6B8A' }}
+          trackColor={{ false: colors.border, true: colors.primary }}
           thumbColor="#FFFFFF"
         />
       )}
       {type === 'link' && (
-        <Icon name="chevron-right" size={16} color="#CCC" />
+        <Icon name="chevron-right" size={16} color={colors.textSecondary} />
       )}
       {type === 'select' && (
-        <Text style={styles.selectedValue}>{value}</Text>
+        <ThemedText style={[styles.selectedValue, { color: colors.primary }]}>{value}</ThemedText>
       )}
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -168,15 +170,15 @@ export default function SettingsScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Icon name="arrow-left" size={22} color="#333" />
+            <Icon name="arrow-left" size={22} color={colors.icon} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Settings</Text>
+          <ThemedText style={styles.headerTitle}>Settings</ThemedText>
           <View style={{ width: 22 }} />
         </View>
 
         {/* Preferences Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Preferences</Text>
+          <ThemedText style={styles.sectionTitle}>Preferences</ThemedText>
           
           <SettingItem
             icon="bell-o"
@@ -192,7 +194,7 @@ export default function SettingsScreen() {
             title="Dark Mode"
             subtitle="Switch to dark theme"
             type="toggle"
-            value={darkModeEnabled}
+            value={isDarkMode}
             onValueChange={handleToggleDarkMode}
           />
           
@@ -217,38 +219,38 @@ export default function SettingsScreen() {
 
         {/* Language Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Language</Text>
+          <ThemedText style={styles.sectionTitle}>Language</ThemedText>
           
           <TouchableOpacity 
-            style={styles.languageOption}
-            onPress={() => handleLanguageSelect('English')}
+            style={[styles.languageOption, { backgroundColor: colors.surface }]}
+            onPress={() => handleLanguageSelect('English', 'english')}
           >
             <View style={styles.languageLeft}>
-              <Icon name="globe" size={20} color="#FF6B8A" />
-              <Text style={styles.languageText}>English</Text>
+              <Icon name="globe" size={20} color={colors.primary} />
+              <ThemedText style={styles.languageText}>English</ThemedText>
             </View>
             {language === 'English' && (
-              <Icon name="check" size={16} color="#FF6B8A" />
+              <Icon name="check" size={16} color={colors.primary} />
             )}
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={styles.languageOption}
-            onPress={() => handleLanguageSelect('नेपाली')}
+            style={[styles.languageOption, { backgroundColor: colors.surface }]}
+            onPress={() => handleLanguageSelect('नेपाली', 'nepali')}
           >
             <View style={styles.languageLeft}>
-              <Icon name="flag" size={20} color="#FF6B8A" />
-              <Text style={styles.languageText}>नेपाली (Nepali)</Text>
+              <Icon name="flag" size={20} color={colors.primary} />
+              <ThemedText style={styles.languageText}>नेपाली (Nepali)</ThemedText>
             </View>
             {language === 'नेपाली' && (
-              <Icon name="check" size={16} color="#FF6B8A" />
+              <Icon name="check" size={16} color={colors.primary} />
             )}
           </TouchableOpacity>
         </View>
 
         {/* Account Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
+          <ThemedText style={styles.sectionTitle}>Account</ThemedText>
           
           <SettingItem
             icon="user-o"
@@ -277,7 +279,7 @@ export default function SettingsScreen() {
 
         {/* Support Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Support</Text>
+          <ThemedText style={styles.sectionTitle}>Support</ThemedText>
           
           <SettingItem
             icon="question-circle-o"
@@ -306,7 +308,7 @@ export default function SettingsScreen() {
 
         {/* Data Management */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Data Management</Text>
+          <ThemedText style={styles.sectionTitle}>Data Management</ThemedText>
           
           <SettingItem
             icon="trash-o"
@@ -322,7 +324,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Version */}
-        <Text style={styles.versionText}>Version 2.4.1</Text>
+        <ThemedText type="secondary" style={styles.versionText}>Version 2.4.1</ThemedText>
       </ScrollView>
     </View>
   );
@@ -331,7 +333,6 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F4F4',
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -347,7 +348,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#2F343A',
   },
   section: {
     marginBottom: 28,
@@ -355,7 +355,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FF6B8A',
     marginBottom: 12,
     letterSpacing: 0.5,
   },
@@ -363,7 +362,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
@@ -379,7 +377,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#FFF0F2',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -389,22 +386,18 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#2F343A',
   },
   settingSubtitle: {
     fontSize: 12,
-    color: '#999',
     marginTop: 2,
   },
   selectedValue: {
     fontSize: 14,
-    color: '#FF6B8A',
   },
   languageOption: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
@@ -418,12 +411,10 @@ const styles = StyleSheet.create({
   languageText: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#2F343A',
   },
   versionText: {
     textAlign: 'center',
     fontSize: 11,
-    color: '#CCC',
     marginTop: 20,
   },
 });

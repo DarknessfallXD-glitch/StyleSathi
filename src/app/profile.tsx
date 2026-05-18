@@ -12,9 +12,12 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import BottomTab from "../comp/BottomTab";
+import { useTheme } from "../Context/ThemeContext";
+import { ThemedText } from "../comp/ThemedText";
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { colors, isDarkMode } = useTheme();
 
   const handleLogout = () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [
@@ -23,11 +26,9 @@ export default function ProfileScreen() {
         text: "Log Out",
         onPress: async () => {
           try {
-            // Clear user data from storage
             await AsyncStorage.removeItem("user");
             await AsyncStorage.removeItem("userId");
 
-            // Show success message
             Alert.alert(
               "Logged Out",
               "You have been successfully logged out.",
@@ -44,7 +45,7 @@ export default function ProfileScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -52,10 +53,10 @@ export default function ProfileScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity>
-            <Icon name="bolt" size={20} color="#333" />
+            <Icon name="bolt" size={20} color={colors.icon} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push("./settings")}>
-            <Icon name="cog" size={20} color="#333" />
+            <Icon name="cog" size={20} color={colors.icon} />
           </TouchableOpacity>
         </View>
 
@@ -66,44 +67,48 @@ export default function ProfileScreen() {
               source={{ uri: "https://i.pravatar.cc/150" }}
               style={styles.avatar}
             />
-            <View style={styles.onlineDot} />
+            <View style={[styles.onlineDot, { borderColor: colors.background }]} />
           </View>
 
-          <Text style={styles.userName}>Sneha Sharma</Text>
-          <Text style={styles.memberSince}>Member since June 2023</Text>
-          <Text style={styles.tierLink}>Style Icon Tier</Text>
+          <ThemedText style={styles.userName}>Sneha Sharma</ThemedText>
+          <ThemedText type="secondary" style={styles.memberSince}>Member since June 2023</ThemedText>
+          <ThemedText style={[styles.tierLink, { color: colors.primary }]}>Style Icon Tier</ThemedText>
         </View>
 
         {/* Stats */}
-        <View style={styles.statsContainer}>
+        <View style={[styles.statsContainer, { backgroundColor: colors.surface }]}>
           <View style={styles.statItem}>
-            <Icon name="camera" size={18} color="#FF6B8A" />
-            <Text style={styles.statNumber}>124</Text>
-            <Text style={styles.statLabel}>Total Try-Ons</Text>
+            <Icon name="camera" size={18} color={colors.primary} />
+            <ThemedText style={styles.statNumber}>124</ThemedText>
+            <ThemedText type="secondary" style={styles.statLabel}>Total Try-Ons</ThemedText>
           </View>
 
-          <View style={styles.statDivider} />
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
 
           <View style={styles.statItem}>
-            <Icon name="heart" size={18} color="#FF6B8A" />
-            <Text style={styles.statNumber}>48</Text>
-            <Text style={styles.statLabel}>Saved Items</Text>
+            <Icon name="heart" size={18} color={colors.primary} />
+            <ThemedText style={styles.statNumber}>48</ThemedText>
+            <ThemedText type="secondary" style={styles.statLabel}>Saved Items</ThemedText>
           </View>
         </View>
 
         {/* Tabs */}
         <View style={styles.tabs}>
-          <Text style={styles.tabActiveText}>My Wardrobe</Text>
+          <ThemedText style={[styles.tabActiveText, { color: colors.primary, borderBottomColor: colors.primary }]}>
+            My Wardrobe
+          </ThemedText>
           <TouchableOpacity onPress={() => router.push("/subscription")}>
-            <Text style={styles.tabTextInactive}>Subscription</Text>
+            <ThemedText style={[styles.tabTextInactive, { color: colors.textSecondary }]}>
+              Subscription
+            </ThemedText>
           </TouchableOpacity>
         </View>
 
         {/* Recent Tries */}
         <View>
           <View style={styles.recentHeader}>
-            <Text style={styles.recentTitle}>Recent Tries</Text>
-            <Text style={styles.viewAllText}>View All</Text>
+            <ThemedText style={styles.recentTitle}>Recent Tries</ThemedText>
+            <ThemedText style={[styles.viewAllText, { color: colors.primary }]}>View All</ThemedText>
           </View>
 
           <View style={styles.recentContainer}>
@@ -130,12 +135,15 @@ export default function ProfileScreen() {
         </View>
 
         {/* Logout */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutText}>Log Out Account</Text>
+        <TouchableOpacity 
+          style={[styles.logoutButton, { borderColor: colors.primary }]} 
+          onPress={handleLogout}
+        >
+          <Text style={[styles.logoutText, { color: colors.primary }]}>Log Out Account</Text>
         </TouchableOpacity>
 
         {/* Version */}
-        <Text style={styles.versionText}>STYLESATHY VERSION 2.4.1</Text>
+        <ThemedText type="secondary" style={styles.versionText}>STYLESATHY VERSION 2.4.1</ThemedText>
       </ScrollView>
 
       <BottomTab active="Profile" />
@@ -144,7 +152,9 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F4F4F4" },
+  container: {
+    flex: 1,
+  },
 
   scrollContent: {
     paddingHorizontal: 20,
@@ -180,7 +190,6 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: "#22C55E",
     borderWidth: 2,
-    borderColor: "#fff",
   },
 
   userName: {
@@ -191,17 +200,16 @@ const styles = StyleSheet.create({
 
   memberSince: {
     fontSize: 12,
-    color: "#888",
+    marginTop: 4,
   },
 
   tierLink: {
-    color: "#6C63FF",
     marginTop: 6,
+    fontSize: 13,
   },
 
   statsContainer: {
     flexDirection: "row",
-    backgroundColor: "#F8F8F8",
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
@@ -213,17 +221,16 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
     marginTop: 6,
-    color: "#FF6B8A",
   },
 
   statLabel: {
     fontSize: 11,
-    color: "#888",
+    marginTop: 4,
   },
 
   statDivider: {
     width: 1,
-    backgroundColor: "#ddd",
+    height: 50,
   },
 
   tabs: {
@@ -233,15 +240,15 @@ const styles = StyleSheet.create({
   },
 
   tabActiveText: {
-    color: "#FF6B8A",
-    borderBottomWidth: 2,
-    borderBottomColor: "#FF6B8A",
-    paddingBottom: 4,
+    fontSize: 15,
     fontWeight: "600",
+    borderBottomWidth: 2,
+    paddingBottom: 4,
   },
 
   tabTextInactive: {
-    color: "#999",
+    fontSize: 15,
+    fontWeight: "500",
   },
 
   recentHeader: {
@@ -252,10 +259,10 @@ const styles = StyleSheet.create({
 
   recentTitle: {
     fontWeight: "600",
+    fontSize: 16,
   },
 
   viewAllText: {
-    color: "#FF6B8A",
     fontSize: 12,
   },
 
@@ -288,7 +295,6 @@ const styles = StyleSheet.create({
 
   logoutButton: {
     borderWidth: 1,
-    borderColor: "#FF6B8A",
     borderRadius: 12,
     padding: 14,
     alignItems: "center",
@@ -296,14 +302,13 @@ const styles = StyleSheet.create({
   },
 
   logoutText: {
-    color: "#FF6B8A",
     fontWeight: "600",
+    fontSize: 15,
   },
 
   versionText: {
     textAlign: "center",
     fontSize: 10,
-    color: "#aaa",
     marginTop: 20,
   },
 });

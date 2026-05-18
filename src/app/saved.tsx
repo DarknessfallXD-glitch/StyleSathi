@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { useTheme } from '../Context/ThemeContext';
+import { ThemedText } from '../comp/ThemedText';
 
 export type WishlistItem = {
   id: number;
@@ -28,6 +30,7 @@ export type WishlistItem = {
 
 export default function SavedScreen() {
   const router = useRouter();
+  const { colors, isDarkMode } = useTheme();
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
 
   useFocusEffect(
@@ -56,23 +59,23 @@ export default function SavedScreen() {
   };
 
   const renderWishlistItem = ({ item }: { item: WishlistItem }) => (
-    <View style={styles.wishlistCard}>
+    <View style={[styles.wishlistCard, { backgroundColor: colors.surface }]}>
       <Image source={{ uri: item.image }} style={styles.wishlistImage} />
       <View style={styles.wishlistInfo}>
         <View style={styles.wishlistHeader}>
-          <Text style={styles.categoryText}>{item.category}</Text>
+          <Text style={[styles.categoryText, { color: colors.primary }]}>{item.category}</Text>
           <TouchableOpacity onPress={() => handleRemove(item.id)}>
-            <Icon name="trash-o" size={18} color="#FF6B8A" />
+            <Icon name="trash-o" size={18} color={colors.primary} />
           </TouchableOpacity>
         </View>
-        <Text style={styles.productName}>{item.name}</Text>
-        <Text style={styles.currentPrice}>{item.price}</Text>
+        <ThemedText style={styles.productName}>{item.name}</ThemedText>
+        <ThemedText style={[styles.currentPrice, { color: colors.primary }]}>{item.price}</ThemedText>
       </View>
     </View>
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -80,18 +83,18 @@ export default function SavedScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.replace('./try-on')}>
-            <Icon name="arrow-left" size={22} color="#333" />
+            <Icon name="arrow-left" size={22} color={colors.icon} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Saved Items</Text>
+          <ThemedText style={styles.headerTitle}>Saved Items</ThemedText>
           <View style={{ width: 22 }} />
         </View>
 
         {/* My Wishlist Section */}
         <View style={styles.wishlistHeaderSection}>
-          <Text style={styles.wishlistTitle}>My Wishlist</Text>
-          <Text style={styles.wishlistCount}>
+          <ThemedText style={styles.wishlistTitle}>My Wishlist</ThemedText>
+          <ThemedText type="secondary" style={styles.wishlistCount}>
             {wishlistItems.length} items waiting for you
-          </Text>
+          </ThemedText>
         </View>
 
         {/* Wishlist Items Grid */}
@@ -103,21 +106,21 @@ export default function SavedScreen() {
           contentContainerStyle={styles.wishlistList}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Icon name="heart-o" size={50} color="#CCC" />
-              <Text style={styles.emptyText}>Your wishlist is empty</Text>
-              <Text style={styles.emptySubtext}>Tap the heart icon on products to add them here!</Text>
+              <Icon name="heart-o" size={50} color={colors.textSecondary} />
+              <ThemedText style={styles.emptyText}>Your wishlist is empty</ThemedText>
+              <ThemedText type="secondary" style={styles.emptySubtext}>Tap the heart icon on products to add them here!</ThemedText>
             </View>
           }
         />
 
         {/* Footer Note */}
         <View style={styles.footerNote}>
-          <Icon name="bell-o" size={16} color="#FF6B8A" />
-          <Text style={styles.footerText}>Always get the best price</Text>
+          <Icon name="bell-o" size={16} color={colors.primary} />
+          <ThemedText style={styles.footerText}>Always get the best price</ThemedText>
         </View>
-        <Text style={styles.footerSubtext}>
+        <ThemedText type="secondary" style={styles.footerSubtext}>
           We'll notify you the moment your favorites go on sale!
-        </Text>
+        </ThemedText>
       </ScrollView>
 
       <BottomTab active="saved" />
@@ -128,7 +131,6 @@ export default function SavedScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F4F4',
   },
   scrollContent: {
     paddingBottom: 80,
@@ -144,7 +146,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#2F343A',
   },
   wishlistHeaderSection: {
     paddingHorizontal: 20,
@@ -153,19 +154,16 @@ const styles = StyleSheet.create({
   wishlistTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#2F343A',
     marginBottom: 4,
   },
   wishlistCount: {
     fontSize: 13,
-    color: '#888',
   },
   wishlistList: {
     paddingHorizontal: 20,
   },
   wishlistCard: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     marginBottom: 16,
     padding: 12,
@@ -192,19 +190,16 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 10,
-    color: '#FF6B8A',
     fontWeight: '600',
   },
   productName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#2F343A',
     marginBottom: 4,
   },
   currentPrice: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FF6B8A',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -213,12 +208,10 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#999',
     marginTop: 16,
   },
   emptySubtext: {
     fontSize: 12,
-    color: '#CCC',
     marginTop: 8,
   },
   footerNote: {
@@ -232,38 +225,12 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#2F343A',
   },
   footerSubtext: {
     fontSize: 11,
-    color: '#999',
     textAlign: 'center',
     marginHorizontal: 40,
     marginBottom: 20,
     lineHeight: 16,
-  },
-  bottomTab: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  tabItem: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 4,
-  },
-  tabText: {
-    fontSize: 10,
-    color: '#999',
-  },
-  tabActive: {
-    color: '#FF6B8A',
   },
 });

@@ -13,7 +13,10 @@ import {
   View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
+import Octicons from 'react-native-vector-icons/Octicons';
 import BottomTab from "../comp/BottomTab";
+import { useTheme } from "../Context/ThemeContext";
+import { ThemedText } from "../comp/ThemedText";
 
 import {
   addToWishlist,
@@ -21,7 +24,7 @@ import {
   removeFromWishlist,
 } from "../utils/wishlist";
 
-// Import from dummy data service
+// Import from my data service
 import {
   FeaturedCollection,
   fetchFeaturedCollections,
@@ -32,42 +35,48 @@ import {
 } from "../services/dummyData";
 
 // ==================== EMPTY STATE COMPONENTS ====================
-const EmptyProducts = () => (
-  <View style={styles.emptyContainer}>
-    <Icon name="shopping-bag" size={60} color="#CCC" />
-    <Text style={styles.emptyTitle}>No products found</Text>
-    <Text style={styles.emptyText}>Check back later for new jewelry!</Text>
-  </View>
-);
+const EmptyProducts = () => {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.emptyContainer, { backgroundColor: colors.surface }]}>
+      <Icon name="shopping-bag" size={60} color={colors.textSecondary} />
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>No products found</Text>
+      <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Check back later for new jewelry!</Text>
+    </View>
+  );
+};
 
-const EmptyFeatured = () => (
-  <View style={styles.emptyFeaturedContainer}>
-    <Icon name="star" size={30} color="#CCC" />
-    <Text style={styles.emptyFeaturedText}>No featured collections</Text>
-  </View>
-);
+const EmptyFeatured = () => {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.emptyFeaturedContainer, { backgroundColor: colors.surface }]}>
+      <Icon name="star" size={30} color={colors.textSecondary} />
+      <Text style={[styles.emptyFeaturedText, { color: colors.textSecondary }]}>No featured collections</Text>
+    </View>
+  );
+};
 
-const EmptyRecent = () => (
-  <View style={styles.emptyRecentContainer}>
-    <Icon name="history" size={24} color="#CCC" />
-    <Text style={styles.emptyRecentText}>No recent searches</Text>
-  </View>
-);
+const EmptyRecent = () => {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.emptyRecentContainer, { backgroundColor: colors.surface }]}>
+      <Icon name="history" size={24} color={colors.textSecondary} />
+      <Text style={[styles.emptyRecentText, { color: colors.textSecondary }]}>No recent searches</Text>
+    </View>
+  );
+};
 
 // ==================== COMPONENT ====================
 export default function HomeScreen() {
   const router = useRouter();
+  const { colors, isDarkMode, toggleTheme } = useTheme();
   const [searchText, setSearchText] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [justForYou, setJustForYou] = useState<Product[]>([]);
-  const [featuredCollections, setFeaturedCollections] = useState<
-    FeaturedCollection[]
-  >([]);
+  const [featuredCollections, setFeaturedCollections] = useState<FeaturedCollection[]>([]);
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
-  const [wishlistStatus, setWishlistStatus] = useState<{
-    [key: number]: boolean;
-  }>({});
+  const [wishlistStatus, setWishlistStatus] = useState<{ [key: number]: boolean }>({});
 
   // Load all data when component mounts
   useEffect(() => {
@@ -135,50 +144,50 @@ export default function HomeScreen() {
   };
 
   const renderRecentSearch = ({ item }: { item: RecentSearch }) => (
-    <TouchableOpacity style={styles.recentChip}>
-      <Text style={styles.recentChipText}>{item}</Text>
+    <TouchableOpacity style={[styles.recentChip, { backgroundColor: colors.surface }]}>
+      <ThemedText style={styles.recentChipText}>{item}</ThemedText>
     </TouchableOpacity>
   );
 
   const renderJustForYou = ({ item }: { item: Product }) => {
-    const isWishlisted = wishlistStatus[item.id] || false;
+  const isWishlisted = wishlistStatus[item.id] || false;
 
-    return (
-      <TouchableOpacity style={styles.productCard} activeOpacity={0.8}>
-        <View style={styles.productImageWrapper}>
-          <Image source={{ uri: item.image }} style={styles.productImage} />
-          <View style={styles.aiTag}>
-            <Icon name="magic" size={10} color="#FF6B8A" />
-            <Text style={styles.aiTagText}>{item.tag}</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.wishlistIcon}
-            onPress={() => toggleWishlist(item)}
-          >
-            <Icon
-              name={isWishlisted ? "heart" : "heart-o"}
-              size={18}
-              color="#FF6B8A"
-            />
-          </TouchableOpacity>
+  return (
+    <TouchableOpacity style={[styles.productCard, { backgroundColor: colors.surface }]} activeOpacity={0.8}>
+      <View style={styles.productImageWrapper}>
+        <Image source={{ uri: item.image }} style={styles.productImage} />
+        <View style={styles.aiTag}>
+          <Icon name="magic" size={10} color={colors.primary} />
+          <ThemedText style={styles.aiTagText}>{item.tag}</ThemedText>
         </View>
-        <Text style={styles.productName}>{item.name}</Text>
-        <Text style={styles.productPrice}>{item.price}</Text>
-      </TouchableOpacity>
-    );
-  };
-
+        <TouchableOpacity
+          style={[styles.wishlistIcon, { backgroundColor: colors.surface }]}
+          onPress={() => toggleWishlist(item)}
+        >
+          <Icon
+            name={isWishlisted ? "heart" : "heart-o"}
+            size={18}
+            color={colors.primary}
+          />
+        </TouchableOpacity>
+      </View>
+      {/* Use ThemedText with explicit no extra color style */}
+      <ThemedText style={styles.productName}>{item.name}</ThemedText>
+      <ThemedText style={styles.productPrice}>{item.price}</ThemedText>
+    </TouchableOpacity>
+  );
+};
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#FF6B8A" />
-        <Text style={styles.loadingText}>Loading amazing jewelry...</Text>
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <ThemedText style={styles.loadingText}>Loading amazing jewelry...</ThemedText>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -186,44 +195,39 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={["#FF6B8A"]}
+            colors={[colors.primary]}
           />
         }
       >
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.welcomeText}>Welcome back</Text>
-            <Text style={styles.userName}>Hi, Sneha! 😊</Text>
+            <ThemedText type="secondary" style={styles.welcomeText}>Welcome back</ThemedText>
+            <ThemedText style={styles.userName}>Hi, Sneha! 😊</ThemedText>
           </View>
-          <TouchableOpacity style={styles.profileButton}>
-            <Icon name="user-circle-o" size={32} color="#FF6B8A" />
+          <TouchableOpacity onPress={toggleTheme} style={styles.themeButton}>
+            <Octicons name={isDarkMode ? "sun" : "moon"} size={22} color={colors.icon} />
           </TouchableOpacity>
         </View>
 
         {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Icon
-            name="search"
-            size={18}
-            color="#999"
-            style={styles.searchIcon}
-          />
+        <View style={[styles.searchContainer, { backgroundColor: colors.surface }]}>
+          <Icon name="search" size={18} color={colors.placeholder} style={styles.searchIcon} />
           <TextInput
             placeholder="Describe what you want..."
-            placeholderTextColor="#999"
-            style={styles.searchInput}
+            placeholderTextColor={colors.placeholder}
+            style={[styles.searchInput, { color: colors.inputText }]}
             value={searchText}
             onChangeText={setSearchText}
           />
-          <Icon name="microphone" size={18} color="#FF6B8A" />
+          <Icon name="microphone" size={18} color={colors.primary} />
         </View>
 
-        {/* Recent Searches Section */}
+        {/* Recent Searches Section - FIXED ALIGNMENT */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Icon name="calendar" size={16} color="#FF6B8A" />
-            <Text style={styles.sectionTitle}> Recent Searches</Text>
+          <View style={styles.recentSectionHeader}>
+            <Icon name="calendar" size={16} color={colors.primary} />
+            <ThemedText style={styles.recentSectionTitle}>Recent Searches</ThemedText>
           </View>
           {recentSearches.length > 0 ? (
             <FlatList
@@ -242,7 +246,7 @@ export default function HomeScreen() {
         {/* Featured Collections Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Featured Collections</Text>
+            <ThemedText style={styles.sectionTitle}>Featured Collections</ThemedText>
             <TouchableOpacity>
               <Text style={styles.seeAllText}>See All</Text>
             </TouchableOpacity>
@@ -269,7 +273,7 @@ export default function HomeScreen() {
         {/* Just For You Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Just For You</Text>
+            <ThemedText style={styles.sectionTitle}>Just For You</ThemedText>
           </View>
           {justForYou.length > 0 ? (
             <FlatList
@@ -294,7 +298,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F4F4F4",
   },
 
   scrollContent: {
@@ -312,20 +315,17 @@ const styles = StyleSheet.create({
 
   welcomeText: {
     fontSize: 14,
-    color: "#888",
   },
 
   userName: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#2F343A",
   },
 
-  profileButton: {
+  themeButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#FFF0F2",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -334,7 +334,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 8,
     right: 8,
-    backgroundColor: "rgba(255,255,255,0.9)",
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -346,7 +345,6 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
     borderRadius: 30,
     paddingHorizontal: 16,
     height: 50,
@@ -365,7 +363,6 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: "#333",
     paddingVertical: 12,
   },
 
@@ -373,16 +370,28 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
 
+  recentSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    gap: 8,
+  },
+
+  recentSectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
 
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#2F343A",
   },
 
   seeAllText: {
@@ -395,7 +404,6 @@ const styles = StyleSheet.create({
   },
 
   recentChip: {
-    backgroundColor: "#FFFFFF",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -409,7 +417,6 @@ const styles = StyleSheet.create({
 
   recentChipText: {
     fontSize: 13,
-    color: "#2F343A",
   },
 
   featuredContainer: {
@@ -448,7 +455,6 @@ const styles = StyleSheet.create({
   },
 
   productCard: {
-    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     width: 160,
     marginRight: 12,
@@ -485,43 +491,39 @@ const styles = StyleSheet.create({
   },
 
   aiTagText: {
+    color:'grey',
     fontSize: 9,
-    color: "#FF6B8A",
     fontWeight: "600",
   },
 
-  productName: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: "#2F343A",
-    marginBottom: 4,
-  },
-
-  productPrice: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#FF6B8A",
-  },
+ productName: {
+  fontSize: 13,
+  fontWeight: "500",
+  marginBottom: 4,
+  // No default color - will be set inline
+},
+productPrice: {
+  fontSize: 14,
+  fontWeight: "700",
+  // No default color - will be set inline
+},
 
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F4F4F4",
     padding: 20,
   },
 
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: "#888",
   },
 
   emptyContainer: {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 40,
-    backgroundColor: "#F9F9F9",
     borderRadius: 16,
     marginTop: 8,
   },
@@ -529,13 +531,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#999",
     marginTop: 12,
   },
 
   emptyText: {
     fontSize: 12,
-    color: "#BBB",
     marginTop: 4,
   },
 
@@ -543,13 +543,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 30,
-    backgroundColor: "#F9F9F9",
     borderRadius: 16,
   },
 
   emptyFeaturedText: {
     fontSize: 12,
-    color: "#BBB",
     marginTop: 8,
   },
 
@@ -558,13 +556,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
-    backgroundColor: "#F9F9F9",
     borderRadius: 20,
     gap: 8,
   },
 
   emptyRecentText: {
     fontSize: 12,
-    color: "#BBB",
   },
 });

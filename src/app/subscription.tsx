@@ -11,6 +11,8 @@ import {
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme } from '../Context/ThemeContext';
+import { ThemedText } from '../comp/ThemedText';
 import { 
   getLocalSubscription, 
   updateLocalSubscription,
@@ -22,6 +24,7 @@ import {
 
 export default function SubscriptionScreen() {
   const router = useRouter();
+  const { colors, isDarkMode } = useTheme();
   const [currentSubscription, setCurrentSubscription] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState(false);
@@ -54,7 +57,7 @@ export default function SubscriptionScreen() {
 
     Alert.alert(
       'Confirm Upgrade',
-      `Are you sure you want to upgrade to ${planName} plan for ${amount}?`,
+      `Are you sure you want to upgrade to ${planName} plan for ₹${amount}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -124,34 +127,34 @@ export default function SubscriptionScreen() {
     const features = getFeaturesForPlan(plan.id);
     
     return (
-      <View key={plan.id} style={[styles.planCard, isActive && styles.activePlanCard]}>
+      <View key={plan.id} style={[styles.planCard, { backgroundColor: colors.surface }, isActive && styles.activePlanCard]}>
         {isActive && (
-          <View style={styles.currentBadge}>
+          <View style={[styles.currentBadge, { backgroundColor: colors.primary }]}>
             <Text style={styles.currentBadgeText}>CURRENT PLAN</Text>
           </View>
         )}
         
         <View style={styles.planHeader}>
-          <Text style={styles.planName}>{plan.name}</Text>
+          <ThemedText style={styles.planName}>{plan.name}</ThemedText>
           <View style={styles.priceContainer}>
-            <Text style={styles.planPrice}>{plan.price}</Text>
-            <Text style={styles.planDuration}>{plan.duration}</Text>
+            <ThemedText style={[styles.planPrice, { color: colors.primary }]}>{plan.price}</ThemedText>
+            <ThemedText type="secondary" style={styles.planDuration}>{plan.duration}</ThemedText>
           </View>
         </View>
 
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
         {features.map((feature: string, index: number) => (
           <View key={index} style={styles.featureItem}>
-            <Icon name="check-circle" size={14} color="#FF6B8A" />
-            <Text style={styles.featureText}>{feature}</Text>
+            <Icon name="check-circle" size={14} color={colors.primary} />
+            <ThemedText style={styles.featureText}>{feature}</ThemedText>
           </View>
         ))}
 
         <TouchableOpacity
           style={[
             styles.planButton,
-            { backgroundColor: isActive ? '#E8E8E8' : plan.buttonColor },
+            { backgroundColor: isActive ? colors.border : plan.buttonColor },
           ]}
           onPress={() => handleUpgrade(plan.id, plan.name, plan.amount)}
           disabled={isActive || upgrading}
@@ -159,7 +162,7 @@ export default function SubscriptionScreen() {
           {upgrading ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <Text style={[styles.planButtonText, isActive && styles.activeButtonText]}>
+            <Text style={[styles.planButtonText, isActive && { color: colors.textSecondary }]}>
               {isActive ? 'Current Plan' : plan.buttonText}
             </Text>
           )}
@@ -170,15 +173,15 @@ export default function SubscriptionScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF6B8A" />
-        <Text style={styles.loadingText}>Loading subscription details...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <ThemedText style={styles.loadingText}>Loading subscription details...</ThemedText>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -186,30 +189,30 @@ export default function SubscriptionScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Icon name="arrow-left" size={22} color="#333" />
+            <Icon name="arrow-left" size={22} color={colors.icon} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Premium Access</Text>
+          <ThemedText style={styles.headerTitle}>Premium Access</ThemedText>
           <View style={{ width: 22 }} />
         </View>
 
         {/* Current Plan Info */}
         {currentSubscription && (
-          <View style={styles.currentPlanBanner}>
+          <View style={[styles.currentPlanBanner, { backgroundColor: colors.surface, borderColor: '#FFD700' }]}>
             <Icon name="star" size={20} color="#FFD700" />
             <View style={styles.currentPlanTextContainer}>
-              <Text style={styles.currentPlanLabel}>Current Plan</Text>
-              <Text style={styles.currentPlanName}>
+              <ThemedText type="secondary" style={styles.currentPlanLabel}>Current Plan</ThemedText>
+              <ThemedText style={[styles.currentPlanName, { color: colors.primary }]}>
                 {currentSubscription.plan.toUpperCase()} PLAN
-              </Text>
+              </ThemedText>
             </View>
           </View>
         )}
 
         {/* Subtitle */}
-        <Text style={styles.subtitle}>Unlock Unlimited Style</Text>
-        <Text style={styles.description}>
+        <ThemedText style={styles.subtitle}>Unlock Unlimited Style</ThemedText>
+        <ThemedText type="secondary" style={styles.description}>
           Choose a plan that fits your fashion journey and never stop experimenting.
-        </Text>
+        </ThemedText>
 
         {/* Plans */}
         {plans.map(renderPlanCard)}
@@ -221,18 +224,15 @@ export default function SubscriptionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F4F4',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F4F4F4',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: '#888',
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -248,47 +248,39 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#2F343A',
   },
   currentPlanBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF8E7',
     borderRadius: 12,
     padding: 12,
     marginBottom: 20,
     gap: 12,
     borderWidth: 1,
-    borderColor: '#FFD700',
   },
   currentPlanTextContainer: {
     flex: 1,
   },
   currentPlanLabel: {
     fontSize: 11,
-    color: '#888',
   },
   currentPlanName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FF6B8A',
   },
   subtitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#2F343A',
     textAlign: 'center',
     marginBottom: 8,
   },
   description: {
     fontSize: 13,
-    color: '#888',
     textAlign: 'center',
     marginBottom: 30,
     lineHeight: 18,
   },
   planCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 20,
     marginBottom: 20,
@@ -307,7 +299,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -10,
     right: 20,
-    backgroundColor: '#FF6B8A',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 20,
@@ -323,7 +314,6 @@ const styles = StyleSheet.create({
   planName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#2F343A',
     marginBottom: 8,
   },
   priceContainer: {
@@ -333,16 +323,13 @@ const styles = StyleSheet.create({
   planPrice: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#FF6B8A',
   },
   planDuration: {
     fontSize: 14,
-    color: '#888',
     marginLeft: 4,
   },
   divider: {
     height: 1,
-    backgroundColor: '#EEEEEE',
     marginBottom: 16,
   },
   featureItem: {
@@ -353,7 +340,6 @@ const styles = StyleSheet.create({
   },
   featureText: {
     fontSize: 13,
-    color: '#555',
   },
   planButton: {
     borderRadius: 25,
@@ -365,8 +351,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 14,
-  },
-  activeButtonText: {
-    color: '#999',
   },
 });
