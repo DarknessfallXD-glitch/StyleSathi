@@ -31,7 +31,18 @@ export default function ProductDetailScreen() {
     );
   }
 
-  const badges = ['Festival Special', 'On You']; // Static or could come from product
+  // Fallback values for missing fields
+  const rating = product.rating ?? null;
+  const reviewCount = product.reviewCount ?? 0;
+  const description = product.description?.trim() || 'Description not provided.';
+  const material = product.material?.trim() || 'Not listed';
+  const weight = product.weight?.trim() || 'Not listed';
+  const length = product.length?.trim() || 'Not listed';
+  const gemstones = product.gemstones?.trim() || 'None';
+  const features = product.features && product.features.length > 0 ? product.features : [];
+  const retailers = product.retailers && product.retailers.length > 0 ? product.retailers : [];
+
+  const badges = ['Festival Special', 'On You']; // Static – can be dynamic later
 
   return (
     <ScrollView
@@ -59,10 +70,16 @@ export default function ProductDetailScreen() {
       {/* Title & Rating */}
       <ThemedText style={styles.productName}>{product.name}</ThemedText>
       <View style={styles.ratingRow}>
-        <Icon name="star" size={16} color="#FFD700" />
-        <Text style={[styles.ratingText, { color: colors.textSecondary }]}>
-          {product.rating} ({product.reviewCount} Reviews)
-        </Text>
+        {rating ? (
+          <>
+            <Icon name="star" size={16} color="#FFD700" />
+            <Text style={[styles.ratingText, { color: colors.textSecondary }]}>
+              {rating} ({reviewCount} {reviewCount === 1 ? 'Review' : 'Reviews'})
+            </Text>
+          </>
+        ) : (
+          <Text style={[styles.ratingText, { color: colors.textSecondary }]}>Not rated</Text>
+        )}
       </View>
 
       {/* Price */}
@@ -73,40 +90,51 @@ export default function ProductDetailScreen() {
       {/* About Section */}
       <ThemedText style={styles.sectionTitle}>ABOUT THIS ITEM</ThemedText>
       <ThemedText type="secondary" style={styles.description}>
-        {product.description}
+        {description}
       </ThemedText>
 
       {/* Specifications */}
       <ThemedText style={styles.sectionTitle}>SPECIFICATIONS</ThemedText>
       <View style={styles.specsContainer}>
-        <ThemedText style={styles.specItem}>• Material: {product.material}</ThemedText>
-        <ThemedText style={styles.specItem}>• Weight: {product.weight}</ThemedText>
-        <ThemedText style={styles.specItem}>• Length: {product.length}</ThemedText>
-        <ThemedText style={styles.specItem}>• Gemstones: {product.gemstones}</ThemedText>
+        <ThemedText style={styles.specItem}>• Material: {material}</ThemedText>
+        <ThemedText style={styles.specItem}>• Weight: {weight}</ThemedText>
+        <ThemedText style={styles.specItem}>• Length: {length}</ThemedText>
+        <ThemedText style={styles.specItem}>• Gemstones: {gemstones}</ThemedText>
       </View>
 
       {/* Features / Benefits */}
-      <View style={styles.featuresRow}>
-        {product.features?.map((feature, idx) => (
-          <View key={idx} style={styles.featureItem}>
-            <Icon name={feature.icon} size={20} color={colors.primary} />
-            <Text style={[styles.featureText, { color: colors.text }]}>{feature.text}</Text>
+      {features.length > 0 && (
+        <>
+          <ThemedText style={styles.sectionTitle}>FEATURES</ThemedText>
+          <View style={styles.featuresRow}>
+            {features.map((feature, idx) => (
+              <View key={idx} style={styles.featureItem}>
+                <Icon name={feature.icon} size={20} color={colors.primary} />
+                <Text style={[styles.featureText, { color: colors.text }]}>{feature.text}</Text>
+              </View>
+            ))}
           </View>
-        ))}
-      </View>
+        </>
+      )}
 
       {/* Retailers */}
       <ThemedText style={styles.sectionTitle}>SELECT RETAILER TO BUY</ThemedText>
-      {product.retailers?.map((retailer, index) => (
-        <TouchableOpacity
-          key={index}
-          style={[styles.retailerCard, { backgroundColor: colors.surface }]}
-          onPress={() => Alert.alert('Redirect', `You will be redirected to ${retailer.name}`)}
-        >
-          <Text style={[styles.retailerName, { color: colors.text }]}>{retailer.name}</Text>
-          <Text style={[styles.retailerPrice, { color: colors.primary }]}>{retailer.price}</Text>
-        </TouchableOpacity>
-      ))}
+      {retailers.length > 0 ? (
+        retailers.map((retailer, index) => (
+          <TouchableOpacity
+            key={index}
+            style={[styles.retailerCard, { backgroundColor: colors.surface }]}
+            onPress={() => Alert.alert('Redirect', `You will be redirected to ${retailer.name}`)}
+          >
+            <Text style={[styles.retailerName, { color: colors.text }]}>{retailer.name}</Text>
+            <Text style={[styles.retailerPrice, { color: colors.primary }]}>{retailer.price}</Text>
+          </TouchableOpacity>
+        ))
+      ) : (
+        <ThemedText type="secondary" style={styles.noRetailersText}>
+          No retailers available at the moment.
+        </ThemedText>
+      )}
     </ScrollView>
   );
 }
@@ -230,5 +258,12 @@ const styles = StyleSheet.create({
   retailerPrice: {
     fontSize: 16,
     fontWeight: '700',
+  },
+  noRetailersText: {
+    fontSize: 14,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 20,
   },
 });

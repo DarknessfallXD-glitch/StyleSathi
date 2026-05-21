@@ -70,7 +70,7 @@ export default function ProfileScreen() {
             <View style={[styles.onlineDot, { borderColor: colors.background }]} />
           </View>
 
-          <ThemedText style={styles.userName}>Sneha Sharma</ThemedText>
+          <ThemedText style={styles.userName}>Reejan Koirala</ThemedText>
           <ThemedText type="secondary" style={styles.memberSince}>Member since June 2023</ThemedText>
           <ThemedText style={[styles.tierLink, { color: colors.primary }]}>Style Icon Tier</ThemedText>
         </View>

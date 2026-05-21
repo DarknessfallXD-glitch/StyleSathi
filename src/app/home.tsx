@@ -213,7 +213,7 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View>
             <ThemedText type="secondary" style={styles.welcomeText}>Welcome back</ThemedText>
-            <ThemedText style={styles.userName}>Hi, Sneha! 😊</ThemedText>
+            <ThemedText style={styles.userName}>Hi, Reejan! 😊</ThemedText>
           </View>
           <TouchableOpacity onPress={toggleTheme} style={styles.themeButton}>
             <Octicons name={isDarkMode ? "sun" : "moon"} size={22} color={colors.icon} />
