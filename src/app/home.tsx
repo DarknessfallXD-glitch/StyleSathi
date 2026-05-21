@@ -150,33 +150,43 @@ export default function HomeScreen() {
   );
 
   const renderJustForYou = ({ item }: { item: Product }) => {
-  const isWishlisted = wishlistStatus[item.id] || false;
+    const isWishlisted = wishlistStatus[item.id] || false;
 
-  return (
-    <TouchableOpacity style={[styles.productCard, { backgroundColor: colors.surface }]} activeOpacity={0.8}>
-      <View style={styles.productImageWrapper}>
-        <Image source={{ uri: item.image }} style={styles.productImage} />
-        <View style={styles.aiTag}>
-          <Icon name="magic" size={10} color={colors.primary} />
-          <ThemedText style={styles.aiTagText}>{item.tag}</ThemedText>
+    return (
+      <TouchableOpacity
+        style={[styles.productCard, { backgroundColor: colors.surface }]}
+        activeOpacity={0.8}
+        onPress={() => {
+          // ✅ Pass the full product object (now includes description, rating, specs, etc.)
+          router.push({
+            pathname: '/product-detail',
+            params: { product: JSON.stringify(item) },
+          });
+        }}
+      >
+        <View style={styles.productImageWrapper}>
+          <Image source={{ uri: item.image }} style={styles.productImage} />
+          <View style={styles.aiTag}>
+            <Icon name="magic" size={10} color={colors.primary} />
+            <ThemedText style={styles.aiTagText}>{item.tag}</ThemedText>
+          </View>
+          <TouchableOpacity
+            style={[styles.wishlistIcon, { backgroundColor: colors.surface }]}
+            onPress={() => toggleWishlist(item)}
+          >
+            <Icon
+              name={isWishlisted ? "heart" : "heart-o"}
+              size={18}
+              color={colors.primary}
+            />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={[styles.wishlistIcon, { backgroundColor: colors.surface }]}
-          onPress={() => toggleWishlist(item)}
-        >
-          <Icon
-            name={isWishlisted ? "heart" : "heart-o"}
-            size={18}
-            color={colors.primary}
-          />
-        </TouchableOpacity>
-      </View>
-      {/* Use ThemedText with explicit no extra color style */}
-      <ThemedText style={styles.productName}>{item.name}</ThemedText>
-      <ThemedText style={styles.productPrice}>{item.price}</ThemedText>
-    </TouchableOpacity>
-  );
-};
+        <ThemedText style={styles.productName}>{item.name}</ThemedText>
+        <ThemedText style={styles.productPrice}>{item.price}</ThemedText>
+      </TouchableOpacity>
+    );
+  };
+
   if (loading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
@@ -223,7 +233,7 @@ export default function HomeScreen() {
           <Icon name="microphone" size={18} color={colors.primary} />
         </View>
 
-        {/* Recent Searches Section - FIXED ALIGNMENT */}
+        {/* Recent Searches Section */}
         <View style={styles.section}>
           <View style={styles.recentSectionHeader}>
             <Icon name="calendar" size={16} color={colors.primary} />
@@ -491,22 +501,20 @@ const styles = StyleSheet.create({
   },
 
   aiTagText: {
-    color:'grey',
+    color: "grey",
     fontSize: 9,
     fontWeight: "600",
   },
 
- productName: {
-  fontSize: 13,
-  fontWeight: "500",
-  marginBottom: 4,
-  // No default color - will be set inline
-},
-productPrice: {
-  fontSize: 14,
-  fontWeight: "700",
-  // No default color - will be set inline
-},
+  productName: {
+    fontSize: 13,
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  productPrice: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
 
   centerContainer: {
     flex: 1,

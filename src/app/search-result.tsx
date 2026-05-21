@@ -179,8 +179,16 @@ export default function SearchResultsScreen() {
     setCurrentIndex(index);
   };
 
-  const renderFeaturedItem = ({ item }: { item: SearchProduct }) => (
-    <TouchableOpacity style={[styles.featuredContainer, { backgroundColor: colors.surface }]} activeOpacity={0.8}>
+const renderFeaturedItem = ({ item }) => (
+  <TouchableOpacity
+    style={styles.featuredContainer}
+    onPress={() => {
+      router.push({
+        pathname: '/product-detail',
+        params: { product: JSON.stringify(item) },
+      });
+    }}
+  >
       <Image source={{ uri: item.image }} style={styles.featuredImage} />
       <View style={styles.featuredBadge}>
         <Icon name="check-circle" size={14} color={colors.primary} />
@@ -203,48 +211,59 @@ export default function SearchResultsScreen() {
     </TouchableOpacity>
   );
 
-  const renderProductCard = (item: SearchProduct) => {
-    const isWishlisted = wishlistStatus[item.id] || false;
-    
-    return (
-      <View key={item.id} style={{ width: CARD_WIDTH }}>
-        <TouchableOpacity style={[styles.card, { backgroundColor: colors.surface }]} activeOpacity={0.8}>
-          <View style={styles.imageContainer}>
-            {item.image ? (
-              <Image source={{ uri: item.image }} style={styles.cardImage} />
-            ) : (
-              <View style={[styles.cardImage, styles.noImageContainer, { backgroundColor: colors.inputBackground }]}>
-                <Icon name="picture-o" size={35} color={colors.textSecondary} />
-                <Text style={[styles.noImageText, { color: colors.textSecondary }]}>No Image</Text>
-              </View>
-            )}
-            {item.isNew && (
-              <View style={styles.newBadge}>
-                <Text style={styles.newBadgeText}>NEW</Text>
-              </View>
-            )}
-            {item.isAiTryOn && (
-              <View style={styles.aiBadge}>
-                <Icon name="magic" size={8} color="#FFFFFF" />
-                <Text style={styles.aiBadgeText}>AI TRY-ON</Text>
-              </View>
-            )}
-            {item.isAiVerified && (
-              <View style={styles.aiVerifiedBadge}>
-                <Icon name="check-circle" size={8} color="#FFFFFF" />
-                <Text style={styles.aiVerifiedBadgeText}>AI VERIFIED</Text>
-              </View>
-            )}
-            <TouchableOpacity 
-              style={[styles.wishlistIcon, { backgroundColor: colors.surface }]}
-              onPress={() => toggleWishlist(item)}
-            >
-              <Icon 
-                name={isWishlisted ? "heart" : "heart-o"} 
-                size={16} 
-                color={colors.primary} 
-              />
-            </TouchableOpacity>
+    const renderProductCard = (item: SearchProduct) => {
+      const isWishlisted = wishlistStatus[item.id] || false;
+      
+      return (
+        
+        <View key={item.id} style={{ width: CARD_WIDTH }}>
+          
+          <TouchableOpacity
+  style={[styles.card, { backgroundColor: colors.surface }]}
+  activeOpacity={0.8}
+  onPress={() => {
+    router.push({
+      pathname: '/product-detail',
+      params: { product: JSON.stringify(item) },
+    });
+  }}
+>
+            <View style={styles.imageContainer}>
+              {item.image ? (
+                <Image source={{ uri: item.image }} style={styles.cardImage} />
+              ) : (
+                <View style={[styles.cardImage, styles.noImageContainer, { backgroundColor: colors.inputBackground }]}>
+                  <Icon name="picture-o" size={35} color={colors.textSecondary} />
+                  <Text style={[styles.noImageText, { color: colors.textSecondary }]}>No Image</Text>
+                </View>
+              )}
+              {item.isNew && (
+                <View style={styles.newBadge}>
+                  <Text style={styles.newBadgeText}>NEW</Text>
+                </View>
+              )}
+              {item.isAiTryOn && (
+                <View style={styles.aiBadge}>
+                  <Icon name="magic" size={8} color="#FFFFFF" />
+                  <Text style={styles.aiBadgeText}>AI TRY-ON</Text>
+                </View>
+              )}
+              {item.isAiVerified && (
+                <View style={styles.aiVerifiedBadge}>
+                  <Icon name="check-circle" size={8} color="#FFFFFF" />
+                  <Text style={styles.aiVerifiedBadgeText}>AI VERIFIED</Text>
+                </View>
+              )}
+              <TouchableOpacity 
+                style={[styles.wishlistIcon, { backgroundColor: colors.surface }]}
+                onPress={() => toggleWishlist(item)}
+              >
+                <Icon 
+                  name={isWishlisted ? "heart" : "heart-o"} 
+                  size={16} 
+                  color={colors.primary} 
+                />
+              </TouchableOpacity>
           </View>
           <View style={styles.cardInfo}>
             <Text style={[styles.cardCategory, { color: colors.textSecondary }]}>{item.category}</Text>
