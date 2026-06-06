@@ -17,6 +17,8 @@ import Octicons from 'react-native-vector-icons/Octicons';
 import BottomTab from "../comp/BottomTab";
 import { useTheme } from "../Context/ThemeContext";
 import { ThemedText } from "../comp/ThemedText";
+import { ProductCard } from "../comp/ProductCard";
+import { lightHaptic } from "../utils/haptic";
 
 import {
   addToWishlist,
@@ -108,8 +110,10 @@ export default function HomeScreen() {
   };
 
   const onRefresh = async () => {
+    lightHaptic();
     setRefreshing(true);
     await loadAllData();
+    setRefreshing(false);
   };
 
   const checkWishlistStatus = async (products: Product[]) => {
@@ -149,41 +153,23 @@ export default function HomeScreen() {
     </TouchableOpacity>
   );
 
+  // New render function using ProductCard component
   const renderJustForYou = ({ item }: { item: Product }) => {
     const isWishlisted = wishlistStatus[item.id] || false;
-
+    const onToggle = () => toggleWishlist(item);
+    const onCardPress = () => {
+      router.push({
+        pathname: '/product-detail',
+        params: { product: JSON.stringify(item) },
+      });
+    };
     return (
-      <TouchableOpacity
-        style={[styles.productCard, { backgroundColor: colors.surface }]}
-        activeOpacity={0.8}
-        onPress={() => {
-          // ✅ Pass the full product object (now includes description, rating, specs, etc.)
-          router.push({
-            pathname: '/product-detail',
-            params: { product: JSON.stringify(item) },
-          });
-        }}
-      >
-        <View style={styles.productImageWrapper}>
-          <Image source={{ uri: item.image }} style={styles.productImage} />
-          <View style={styles.aiTag}>
-            <Icon name="magic" size={10} color={colors.primary} />
-            <ThemedText style={styles.aiTagText}>{item.tag}</ThemedText>
-          </View>
-          <TouchableOpacity
-            style={[styles.wishlistIcon, { backgroundColor: colors.surface }]}
-            onPress={() => toggleWishlist(item)}
-          >
-            <Icon
-              name={isWishlisted ? "heart" : "heart-o"}
-              size={18}
-              color={colors.primary}
-            />
-          </TouchableOpacity>
-        </View>
-        <ThemedText style={styles.productName}>{item.name}</ThemedText>
-        <ThemedText style={styles.productPrice}>{item.price}</ThemedText>
-      </TouchableOpacity>
+      <ProductCard
+        item={item}
+        onPress={onCardPress}
+        isWishlisted={isWishlisted}
+        onToggleWishlist={onToggle}
+      />
     );
   };
 
@@ -304,33 +290,29 @@ export default function HomeScreen() {
   );
 }
 
+// Styles remain exactly the same as in your original file
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 80,
   },
-
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 24,
   },
-
   welcomeText: {
     fontSize: 14,
   },
-
   userName: {
     fontSize: 24,
     fontWeight: "700",
   },
-
   themeButton: {
     width: 40,
     height: 40,
@@ -338,7 +320,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
   wishlistIcon: {
     position: "absolute",
     top: 8,
@@ -350,7 +331,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     zIndex: 10,
   },
-
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -364,54 +344,44 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-
   searchIcon: {
     marginRight: 10,
   },
-
   searchInput: {
     flex: 1,
     fontSize: 14,
     paddingVertical: 12,
   },
-
   section: {
     marginBottom: 28,
   },
-
   recentSectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 12,
     gap: 8,
   },
-
   recentSectionTitle: {
     fontSize: 18,
     fontWeight: "600",
   },
-
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 12,
   },
-
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
   },
-
   seeAllText: {
     fontSize: 12,
     color: "#FF6B8A",
   },
-
   recentList: {
     gap: 10,
   },
-
   recentChip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -423,46 +393,38 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-
   recentChipText: {
     fontSize: 13,
   },
-
   featuredContainer: {
     flexDirection: "row",
     gap: 12,
   },
-
   featuredCard: {
     flex: 1,
     borderRadius: 16,
     padding: 16,
     height: 120,
   },
-
   featuredTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: "#FFFFFF",
   },
-
   featuredSubtitle: {
     fontSize: 12,
     color: "rgba(255,255,255,0.9)",
     marginTop: 4,
     marginBottom: 12,
   },
-
   exploreText: {
     fontSize: 11,
     color: "#FFFFFF",
     fontWeight: "600",
   },
-
   productList: {
     gap: 12,
   },
-
   productCard: {
     borderRadius: 16,
     width: 160,
@@ -474,18 +436,15 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-
   productImageWrapper: {
     position: "relative",
     marginBottom: 8,
   },
-
   productImage: {
     width: "100%",
     height: 130,
     borderRadius: 12,
   },
-
   aiTag: {
     position: "absolute",
     top: 8,
@@ -498,13 +457,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 4,
   },
-
   aiTagText: {
     color: "grey",
     fontSize: 9,
     fontWeight: "600",
   },
-
   productName: {
     fontSize: 13,
     fontWeight: "500",
@@ -514,19 +471,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
   },
-
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
   },
-
   loadingText: {
     marginTop: 12,
     fontSize: 14,
   },
-
   emptyContainer: {
     alignItems: "center",
     justifyContent: "center",
@@ -534,30 +488,25 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginTop: 8,
   },
-
   emptyTitle: {
     fontSize: 16,
     fontWeight: "600",
     marginTop: 12,
   },
-
   emptyText: {
     fontSize: 12,
     marginTop: 4,
   },
-
   emptyFeaturedContainer: {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 30,
     borderRadius: 16,
   },
-
   emptyFeaturedText: {
     fontSize: 12,
     marginTop: 8,
   },
-
   emptyRecentContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -566,7 +515,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     gap: 8,
   },
-
   emptyRecentText: {
     fontSize: 12,
   },

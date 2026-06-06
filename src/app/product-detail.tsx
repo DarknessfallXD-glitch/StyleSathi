@@ -1,20 +1,20 @@
-import React from 'react';
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Image,
-  TouchableOpacity,
-  Dimensions,
   Alert,
-} from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import Icon from 'react-native-vector-icons/FontAwesome';
-import { useTheme } from '../Context/ThemeContext';
-import { ThemedText } from '../comp/ThemedText';
+  Dimensions,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome";
+import { useTheme } from "../Context/ThemeContext";
+import { ThemedText } from "../comp/ThemedText";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 const IMAGE_SIZE = width - 64; // smaller, with 32px margin on each side
 
 export default function ProductDetailScreen() {
@@ -34,15 +34,18 @@ export default function ProductDetailScreen() {
 
   const rating = product.rating ?? null;
   const reviewCount = product.reviewCount ?? 0;
-  const description = product.description?.trim() || 'Description not provided.';
-  const material = product.material?.trim() || 'Not listed';
-  const weight = product.weight?.trim() || 'Not listed';
-  const length = product.length?.trim() || 'Not listed';
-  const gemstones = product.gemstones?.trim() || 'None';
-  const features = product.features && product.features.length > 0 ? product.features : [];
-  const retailers = product.retailers && product.retailers.length > 0 ? product.retailers : [];
+  const description =
+    product.description?.trim() || "Description not provided.";
+  const material = product.material?.trim() || "Not listed";
+  const weight = product.weight?.trim() || "Not listed";
+  const length = product.length?.trim() || "Not listed";
+  const gemstones = product.gemstones?.trim() || "None";
+  const features =
+    product.features && product.features.length > 0 ? product.features : [];
+  const retailers =
+    product.retailers && product.retailers.length > 0 ? product.retailers : [];
 
-  const badges = ['Festival Special', 'On You'];
+  const badges = ["Festival Special", "On You"];
 
   return (
     <ScrollView
@@ -52,7 +55,10 @@ export default function ProductDetailScreen() {
     >
       {/* Back Button - now positioned relative to the image container */}
       <View style={styles.backButtonContainer}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
           <Icon name="arrow-left" size={22} color={colors.text} />
         </TouchableOpacity>
       </View>
@@ -65,7 +71,10 @@ export default function ProductDetailScreen() {
       {/* Badges */}
       <View style={styles.badgesRow}>
         {badges.map((badge, index) => (
-          <View key={index} style={[styles.badge, { backgroundColor: colors.primary }]}>
+          <View
+            key={index}
+            style={[styles.badge, { backgroundColor: colors.primary }]}
+          >
             <Text style={styles.badgeText}>{badge}</Text>
           </View>
         ))}
@@ -78,11 +87,14 @@ export default function ProductDetailScreen() {
           <>
             <Icon name="star" size={16} color="#FFD700" />
             <Text style={[styles.ratingText, { color: colors.textSecondary }]}>
-              {rating} ({reviewCount} {reviewCount === 1 ? 'Review' : 'Reviews'})
+              {rating} ({reviewCount} {reviewCount === 1 ? "Review" : "Reviews"}
+              )
             </Text>
           </>
         ) : (
-          <Text style={[styles.ratingText, { color: colors.textSecondary }]}>Not rated</Text>
+          <Text style={[styles.ratingText, { color: colors.textSecondary }]}>
+            Not rated
+          </Text>
         )}
       </View>
 
@@ -103,7 +115,9 @@ export default function ProductDetailScreen() {
         <ThemedText style={styles.specItem}>• Material: {material}</ThemedText>
         <ThemedText style={styles.specItem}>• Weight: {weight}</ThemedText>
         <ThemedText style={styles.specItem}>• Length: {length}</ThemedText>
-        <ThemedText style={styles.specItem}>• Gemstones: {gemstones}</ThemedText>
+        <ThemedText style={styles.specItem}>
+          • Gemstones: {gemstones}
+        </ThemedText>
       </View>
 
       {/* Features / Benefits */}
@@ -114,7 +128,9 @@ export default function ProductDetailScreen() {
             {features.map((feature, idx) => (
               <View key={idx} style={styles.featureItem}>
                 <Icon name={feature.icon} size={20} color={colors.primary} />
-                <Text style={[styles.featureText, { color: colors.text }]}>{feature.text}</Text>
+                <Text style={[styles.featureText, { color: colors.text }]}>
+                  {feature.text}
+                </Text>
               </View>
             ))}
           </View>
@@ -122,16 +138,27 @@ export default function ProductDetailScreen() {
       )}
 
       {/* Retailers */}
-      <ThemedText style={styles.sectionTitle}>SELECT RETAILER TO BUY</ThemedText>
+      <ThemedText style={styles.sectionTitle}>
+        SELECT RETAILER TO BUY
+      </ThemedText>
       {retailers.length > 0 ? (
         retailers.map((retailer, index) => (
           <TouchableOpacity
             key={index}
             style={[styles.retailerCard, { backgroundColor: colors.surface }]}
-            onPress={() => Alert.alert('Redirect', `You will be redirected to ${retailer.name}`)}
+            onPress={() =>
+              Alert.alert(
+                "Redirect",
+                `You will be redirected to ${retailer.name}`,
+              )
+            }
           >
-            <Text style={[styles.retailerName, { color: colors.text }]}>{retailer.name}</Text>
-            <Text style={[styles.retailerPrice, { color: colors.primary }]}>{retailer.price}</Text>
+            <Text style={[styles.retailerName, { color: colors.text }]}>
+              {retailer.name}
+            </Text>
+            <Text style={[styles.retailerPrice, { color: colors.primary }]}>
+              {retailer.price}
+            </Text>
           </TouchableOpacity>
         ))
       ) : (
@@ -159,22 +186,22 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   imageContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 16,
   },
   productImage: {
     width: IMAGE_SIZE,
     height: IMAGE_SIZE,
     borderRadius: 16,
-    resizeMode: 'cover',
+    resizeMode: "cover",
   },
   badgesRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: 20,
     marginBottom: 12,
     gap: 12,
@@ -185,19 +212,19 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   badgeText: {
-    color: '#FFF',
+    color: "#FFF",
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   productName: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
     paddingHorizontal: 20,
     marginBottom: 8,
   },
   ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 20,
     marginBottom: 12,
     gap: 6,
@@ -207,13 +234,13 @@ const styles = StyleSheet.create({
   },
   price: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: "800",
     paddingHorizontal: 20,
     marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     paddingHorizontal: 20,
     marginTop: 20,
     marginBottom: 12,
@@ -233,44 +260,44 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   featuresRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     marginVertical: 20,
   },
   featureItem: {
-    alignItems: 'center',
+    alignItems: "center",
     gap: 6,
   },
   featureText: {
     fontSize: 12,
   },
   retailerCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderRadius: 12,
     marginHorizontal: 20,
     marginBottom: 12,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
   },
   retailerName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   retailerPrice: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   noRetailersText: {
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
     paddingHorizontal: 20,
     marginTop: 8,
     marginBottom: 20,
