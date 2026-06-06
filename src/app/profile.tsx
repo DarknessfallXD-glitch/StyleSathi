@@ -9,6 +9,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Platform,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import BottomTab from "../comp/BottomTab";
@@ -20,28 +21,49 @@ export default function ProfileScreen() {
   const { colors, isDarkMode } = useTheme();
 
   const handleLogout = () => {
-    Alert.alert("Log Out", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Log Out",
-        onPress: async () => {
-          try {
-            await AsyncStorage.removeItem("user");
-            await AsyncStorage.removeItem("userId");
+    const performLogout = async () => {
+      try {
+        // Clear all auth-related keys
+        await AsyncStorage.multiRemove([
+          "user",
+          "userId",
+          "supabase.auth.token",
+          "supabase.session",
+        ]);
+        console.log("User removed from storage");
+        // Show success message and navigate
+        if (Platform.OS === 'web') {
+          window.alert("You have been successfully logged out.");
+          router.replace("/welcome");
+        } else {
+          Alert.alert("Logged Out", "You have been successfully logged out.", [
+            { text: "OK", onPress: () => router.replace("/welcome") },
+          ]);
+        }
+      } catch (error) {
+        console.error("Logout error:", error);
+        if (Platform.OS === 'web') {
+          window.alert("Failed to log out. Please try again.");
+        } else {
+          Alert.alert("Error", "Failed to log out. Please try again.");
+        }
+      }
+    };
 
-            Alert.alert(
-              "Logged Out",
-              "You have been successfully logged out.",
-              [{ text: "OK", onPress: () => router.replace("/welcome") }],
-            );
-          } catch (error) {
-            console.error("Logout error:", error);
-            Alert.alert("Error", "Failed to log out. Please try again.");
-          }
+    // Confirmation dialog
+    if (Platform.OS === 'web') {
+      const confirm = window.confirm("Are you sure you want to log out?");
+      if (confirm) performLogout();
+    } else {
+      Alert.alert("Log Out", "Are you sure you want to log out?", [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Log Out",
+          onPress: performLogout,
+          style: "destructive",
         },
-        style: "destructive",
-      },
-    ]);
+      ]);
+    }
   };
 
   return (
@@ -150,6 +172,8 @@ export default function ProfileScreen() {
     </View>
   );
 }
+
+// styles unchanged
 
 const styles = StyleSheet.create({
   container: {

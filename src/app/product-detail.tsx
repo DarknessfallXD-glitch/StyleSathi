@@ -15,6 +15,7 @@ import { useTheme } from '../Context/ThemeContext';
 import { ThemedText } from '../comp/ThemedText';
 
 const { width } = Dimensions.get('window');
+const IMAGE_SIZE = width - 64; // smaller, with 32px margin on each side
 
 export default function ProductDetailScreen() {
   const router = useRouter();
@@ -31,7 +32,6 @@ export default function ProductDetailScreen() {
     );
   }
 
-  // Fallback values for missing fields
   const rating = product.rating ?? null;
   const reviewCount = product.reviewCount ?? 0;
   const description = product.description?.trim() || 'Description not provided.';
@@ -42,7 +42,7 @@ export default function ProductDetailScreen() {
   const features = product.features && product.features.length > 0 ? product.features : [];
   const retailers = product.retailers && product.retailers.length > 0 ? product.retailers : [];
 
-  const badges = ['Festival Special', 'On You']; // Static – can be dynamic later
+  const badges = ['Festival Special', 'On You'];
 
   return (
     <ScrollView
@@ -50,13 +50,17 @@ export default function ProductDetailScreen() {
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.content}
     >
-      {/* Back Button */}
-      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-        <Icon name="arrow-left" size={22} color={colors.text} />
-      </TouchableOpacity>
+      {/* Back Button - now positioned relative to the image container */}
+      <View style={styles.backButtonContainer}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Icon name="arrow-left" size={22} color={colors.text} />
+        </TouchableOpacity>
+      </View>
 
-      {/* Product Image */}
-      <Image source={{ uri: product.image }} style={styles.productImage} />
+      {/* Product Image - centered with margins */}
+      <View style={styles.imageContainer}>
+        <Image source={{ uri: product.image }} style={styles.productImage} />
+      </View>
 
       {/* Badges */}
       <View style={styles.badgesRow}>
@@ -146,23 +150,28 @@ const styles = StyleSheet.create({
   content: {
     paddingBottom: 40,
   },
+  backButtonContainer: {
+    paddingHorizontal: 20,
+    marginTop: 50,
+    marginBottom: 12,
+  },
   backButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    zIndex: 10,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  productImage: {
-    width: width,
-    height: width * 0.9,
-    resizeMode: 'cover',
+  imageContainer: {
+    alignItems: 'center',
     marginBottom: 16,
+  },
+  productImage: {
+    width: IMAGE_SIZE,
+    height: IMAGE_SIZE,
+    borderRadius: 16,
+    resizeMode: 'cover',
   },
   badgesRow: {
     flexDirection: 'row',

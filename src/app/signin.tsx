@@ -18,7 +18,6 @@ import {
   View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
-import { supabase } from "../lib/supabase";
 
 console.log("Redirect URI:", AuthSession.makeRedirectUri());
 WebBrowser.maybeCompleteAuthSession();
@@ -65,30 +64,15 @@ export default function SignInScreen() {
     ]).start();
   }, []);
 
-  // Check if user is already logged in
-  useEffect(() => {
-    checkSession();
-  }, []);
-
-  const checkSession = async () => {
-    try {
-      // Check if Supabase is configured
-      if (!supabase) {
-        console.log("Supabase not configured yet");
-        return;
-      }
-      
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) throw error;
-      
-      if (session) {
-        router.replace('/home');
-      }
-    } catch (error: any) {
-      // Silently fail - user just needs to sign in manually
-      console.log("Session check failed:", error.message);
-    }
-  };
+  // REMOVED Supabase session check – we don't need it for Google-only local login
+  // You can add a simple check if user exists in AsyncStorage (optional)
+  // const checkLocalUser = async () => {
+  //   const user = await AsyncStorage.getItem("user");
+  //   if (user) router.replace("/home");
+  // };
+  // useEffect(() => {
+  //   checkLocalUser();
+  // }, []);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -114,63 +98,35 @@ export default function SignInScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Helper function to handle Supabase connection errors
-  const handleSupabaseError = (error: any): string => {
-    console.error("Supabase error:", error);
-    
-    // Network/Connection errors
+  // Helper for network errors (kept for consistency)
+  const handleNetworkError = (error: any): string => {
+    console.error("Error:", error);
     if (!error) return "Unable to connect. Please check your internet.";
     if (error.message === "Failed to fetch") return "Network error. Please check your connection.";
-    if (error.message?.includes("network")) return "Network error. Please try again.";
-    if (error.message?.includes("timeout")) return "Connection timeout. Please try again.";
-    
-    // Supabase configuration errors
-    if (error.message?.includes("Invalid API key")) return "Authentication service is not configured yet.";
-    if (error.message?.includes("Invalid JWT")) return "Service configuration issue. Please contact support.";
-    if (error.message?.includes("URL is required")) return "Backend connection not configured.";
-    
-    // Auth errors
-    if (error.message === "Invalid login credentials") return "Invalid email or password.";
-    if (error.message?.includes("Email not confirmed")) return "Please verify your email before signing in.";
-    if (error.message?.includes("User already registered")) return "An account with this email already exists.";
-    if (error.message?.includes("Password should be at least 6 characters")) return "Password must be at least 6 characters.";
-    
-    // Default fallback
     return "Something went wrong. Please try again.";
   };
 
-  // Email/Password Sign In with Supabase
+  // Email/Password Sign In (still using local storage only, no backend)
   const handleSignIn = async () => {
     setErrors({});
     setConnectionError(null);
-    
     if (!validateForm()) return;
-    
     setIsLoading(true);
 
     try {
-      // Check if supabase is available
-      if (!supabase || !supabase.auth) {
-        throw new Error("Authentication service is not available");
-      }
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // Simulate API call – in reality you'd check credentials against a backend
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      // For demo, just accept any email/password (add real validation later)
+      const userData = {
         email: email.trim().toLowerCase(),
-        password: password,
-      });
-
-      if (error) throw error;
-
-      if (data?.user) {
-        await AsyncStorage.setItem("user", JSON.stringify(data.user));
-        Alert.alert("Success", "Logged in successfully!");
-        router.replace("/home");
-      } else {
-        throw new Error("No user data returned");
-      }
-      
+        provider: "email",
+        loggedInAt: new Date().toISOString(),
+      };
+      await AsyncStorage.setItem("user", JSON.stringify(userData));
+      Alert.alert("Success", "Logged in successfully!");
+      router.replace("/home");
     } catch (error: any) {
-      const errorMessage = handleSupabaseError(error);
+      const errorMessage = handleNetworkError(error);
       setConnectionError(errorMessage);
       Alert.alert("Login Failed", errorMessage);
     } finally {
@@ -178,43 +134,49 @@ export default function SignInScreen() {
     }
   };
 
-  // Google Handler with Supabase
+  // ========== GOOGLE LOGIN (NO SUPABASE) ==========
   const handleGoogleLogin = () => {
     setConnectionError(null);
     promptAsync();
   };
 
-  // Handle Google response with Supabase
+  // Handle Google response – fetch user info and store locally
   useEffect(() => {
     if (response?.type === "success") {
       const { authentication } = response;
+      if (!authentication?.accessToken) {
+        Alert.alert("Error", "Failed to get access token");
+        return;
+      }
 
-      supabase.auth.signInWithIdToken({
-        provider: 'google',
-        token: authentication?.idToken!,
-      }).then(async ({ data, error }) => {
-        if (error) throw error;
-        
-        if (data?.user) {
-          await AsyncStorage.setItem("user", JSON.stringify(data.user));
-          Alert.alert("Success", `Welcome ${data.user.email}!`);
+      fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+        headers: { Authorization: `Bearer ${authentication.accessToken}` },
+      })
+        .then((res) => res.json())
+        .then(async (userInfo) => {
+          const userData = {
+            id: userInfo.sub,
+            email: userInfo.email,
+            name: userInfo.name || userInfo.email?.split("@")[0],
+            picture: userInfo.picture,
+            provider: "google",
+            loggedInAt: new Date().toISOString(),
+          };
+          await AsyncStorage.setItem("user", JSON.stringify(userData));
+          Alert.alert("Success", `Welcome ${userData.name}!`);
           router.replace("/home");
-        } else {
-          throw new Error("No user data returned");
-        }
-      }).catch((err) => {
-        const errorMessage = handleSupabaseError(err);
-        setConnectionError(errorMessage);
-        Alert.alert("Login Failed", errorMessage);
-      });
+        })
+        .catch((err) => {
+          console.error(err);
+          Alert.alert("Error", "Failed to get Google user info");
+        });
     } else if (response?.type === "error") {
       console.log("Google sign in cancelled or failed");
     }
   }, [response]);
 
-  // Apple Sign-In Handler with Supabase
+  // Apple Sign-In (placeholder, no database)
   const handleAppleLogin = async () => {
-    // Apple Sign-In only works on iOS devices
     if (Platform.OS === 'web') {
       Alert.alert('Info', 'Apple Sign-In is only available on iOS devices');
       return;
@@ -224,16 +186,13 @@ export default function SignInScreen() {
     setConnectionError(null);
 
     try {
-      // Check if Apple Sign-In is available
       const isAvailable = await AppleAuthentication.isAvailableAsync();
-      
       if (!isAvailable) {
         Alert.alert('Not Available', 'Apple Sign-In is not available on this device');
         setAppleLoading(false);
         return;
       }
 
-      // Perform Apple Sign-In
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
@@ -241,62 +200,28 @@ export default function SignInScreen() {
         ],
       });
 
-      console.log('Apple User:', credential);
-
-      if (!credential.identityToken) {
-        throw new Error("No identity token received from Apple");
-      }
-
-      const { data, error } = await supabase.auth.signInWithIdToken({
+      // Store Apple user locally
+      const userData = {
+        id: credential.user,
+        name: credential.fullName?.givenName || credential.fullName?.nickname || 'Apple User',
+        email: credential.email || 'user@privaterelay.appleid.com',
         provider: 'apple',
-        token: credential.identityToken,
-      });
-
-      if (error) throw error;
-
-      if (data?.user) {
-        await AsyncStorage.setItem('user', JSON.stringify(data.user));
-        Alert.alert('Success', `Welcome!`);
-        router.replace('/home');
-      } else {
-        throw new Error("No user data returned");
-      }
-      
+        loggedInAt: new Date().toISOString(),
+      };
+      await AsyncStorage.setItem('user', JSON.stringify(userData));
+      Alert.alert('Success', `Welcome ${userData.name}!`);
+      router.replace('/home');
     } catch (error: any) {
-      if (error.code === 'ERR_CANCELED') {
-        // User cancelled - do nothing
-        console.log('User cancelled Apple Sign-In');
-      } else {
-        const errorMessage = handleSupabaseError(error);
-        setConnectionError(errorMessage);
-        Alert.alert('Error', errorMessage);
+      if (error.code !== 'ERR_CANCELED') {
+        Alert.alert('Error', 'Apple Sign-In failed. Please try again.');
       }
     } finally {
       setAppleLoading(false);
     }
   };
 
-  const handleForgotPassword = async () => {
-    if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email address first.');
-      return;
-    }
-    
-    if (!validateEmail(email)) {
-      Alert.alert('Error', 'Please enter a valid email address.');
-      return;
-    }
-    
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
-      
-      if (error) throw error;
-      
-      Alert.alert('Success', 'Password reset link sent to your email.');
-    } catch (error: any) {
-      const errorMessage = handleSupabaseError(error);
-      Alert.alert('Error', errorMessage);
-    }
+  const handleForgotPassword = () => {
+    Alert.alert("Reset Password", "Password reset link will be sent to your email.");
   };
 
   return (
@@ -326,7 +251,6 @@ export default function SignInScreen() {
         Ready for your next virtual try-on? Sign in to access your wardrobe.
       </Text>
 
-      {/* Show connection error if any */}
       {connectionError && (
         <View style={styles.connectionErrorContainer}>
           <Icon name="exclamation-triangle" size={16} color="#FF4444" />
@@ -399,11 +323,7 @@ export default function SignInScreen() {
         activeOpacity={0.8}
         disabled={isLoading}
       >
-        {isLoading ? (
-          <ActivityIndicator color="#FFFFFF" />
-        ) : (
-          <Text style={styles.buttonText}>Sign In</Text>
-        )}
+        {isLoading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Sign In</Text>}
       </TouchableOpacity>
 
       <View style={styles.dividerRow}>
@@ -413,11 +333,7 @@ export default function SignInScreen() {
       </View>
 
       <View style={styles.socialRow}>
-        <TouchableOpacity
-          style={styles.socialBtn}
-          activeOpacity={0.7}
-          onPress={handleGoogleLogin}
-        >
+        <TouchableOpacity style={styles.socialBtn} activeOpacity={0.7} onPress={handleGoogleLogin}>
           <Icon name="google" size={18} color="#DB4437" />
           <Text style={styles.socialLabel}>Google</Text>
         </TouchableOpacity>

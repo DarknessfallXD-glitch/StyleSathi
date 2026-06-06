@@ -271,7 +271,6 @@ export default function HomeScreen() {
                 >
                   <Text style={styles.featuredTitle}>{item.title}</Text>
                   <Text style={styles.featuredSubtitle}>{item.subtitle}</Text>
-                  <Text style={styles.exploreText}>Explore Items →</Text>
                 </TouchableOpacity>
               ))}
             </View>
