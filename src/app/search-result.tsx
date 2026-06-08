@@ -1,3 +1,5 @@
+// Reminder remove timeout
+
 import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
@@ -17,8 +19,9 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { useTheme } from '../Context/ThemeContext';
 import { ThemedText } from '../comp/ThemedText';
 import { ProductCard } from '../comp/ProductCard';
-import { lightHaptic } from '../utils/haptic';
+import { lightHaptic, successHaptic } from '../utils/haptic';  // added successHaptic for consistency
 import BottomTab from '../comp/BottomTab';
+import { Skeleton } from '../comp/Skeleton';
 import { 
   searchProducts, 
   filterByCategory, 
@@ -37,6 +40,79 @@ const SORT_OPTIONS = [
   { id: 'price_desc', label: 'Price: High to Low', icon: 'arrow-down' },
   { id: 'name_asc', label: 'Name: A to Z', icon: 'sort-alpha-asc' },
 ];
+
+// ==================== SKELETON COMPONENTS ====================
+
+const SearchSkeleton = () => {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Header skeleton */}
+        <View style={styles.header}>
+          <Skeleton width={22} height={22} borderRadius={11} />
+          <Skeleton width={120} height={20} />
+          <View style={{ width: 22 }} />
+        </View>
+
+        {/* Search bar skeleton */}
+        <Skeleton height={50} borderRadius={30} style={{ marginHorizontal: 20, marginBottom: 16 }} />
+
+        {/* Filter bar skeleton */}
+        <View style={styles.filterBar}>
+          <Skeleton width={80} height={32} borderRadius={18} />
+          <Skeleton width={80} height={32} borderRadius={18} />
+          <Skeleton width={60} height={32} borderRadius={18} />
+        </View>
+
+        {/* Results count skeleton */}
+        <Skeleton width={150} height={20} style={{ marginHorizontal: 20, marginTop: 8, marginBottom: 4 }} />
+        <Skeleton width={200} height={14} style={{ marginHorizontal: 20, marginBottom: 16 }} />
+
+        {/* Top results section skeleton */}
+        <View style={{ marginBottom: 20 }}>
+          <View style={styles.topResultsHeader}>
+            <Skeleton width={20} height={12} borderRadius={8} />
+            <Skeleton width={100} height={16} />
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredList}>
+            {[1, 2].map((i) => (
+              <View key={i} style={[styles.featuredContainer, { width: width - 40, marginRight: 16 }]}>
+                <Skeleton height={400} borderRadius={20} />
+                <View style={styles.featuredInfo}>
+                  <Skeleton width={60} height={14} style={{ marginBottom: 8 }} />
+                  <Skeleton width={140} height={18} style={{ marginBottom: 8 }} />
+                  <Skeleton width={80} height={20} style={{ marginBottom: 12 }} />
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* All results header skeleton */}
+        <View style={styles.allResultsHeader}>
+          <Skeleton width={20} height={14} borderRadius={7} />
+          <Skeleton width={120} height={14} />
+        </View>
+
+        {/* Grid skeletons – 4 cards (2 rows) */}
+        <View style={styles.gridContainer}>
+          {[1, 2, 3, 4].map((i) => (
+            <View key={i} style={{ width: CARD_WIDTH }}>
+              <View style={[styles.card, { backgroundColor: colors.surface, padding: 12 }]}>
+                <Skeleton height={130} borderRadius={12} />
+                <Skeleton width={90} height={12} style={{ marginTop: 8 }} />
+                <Skeleton width={70} height={12} style={{ marginTop: 6 }} />
+              </View>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    </View>
+  );
+};
+
+// ==================== MAIN COMPONENT ====================
 
 export default function SearchResultsScreen() {
   const router = useRouter();
@@ -66,6 +142,7 @@ export default function SearchResultsScreen() {
 
   const loadInitialData = async () => {
     setLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 3000));
     try {
       setSearchResults(STATIC_PRODUCTS);
       setFilteredResults(STATIC_PRODUCTS);
@@ -99,7 +176,6 @@ export default function SearchResultsScreen() {
   const handleSearch = async (text: string) => {
     setSearchQuery(text);
     setSearching(true);
-    
     try {
       const results = await searchProducts(text);
       setSearchResults(results);
@@ -167,11 +243,13 @@ export default function SearchResultsScreen() {
   };
 
   const handleCategorySelect = (category: string) => {
+    lightHaptic();                     // haptic when selecting category
     setSelectedCategory(category === 'All' ? null : category);
     setShowCategoryMenu(false);
   };
 
   const handleSortSelect = (sortId: string) => {
+    lightHaptic();                     // haptic when selecting sort option
     setSelectedSort(sortId === selectedSort ? null : sortId);
     setShowSortMenu(false);
   };
@@ -220,7 +298,6 @@ export default function SearchResultsScreen() {
     </TouchableOpacity>
   );
 
-  // ✅ Replaced inline product card with ProductCard
   const renderProductCard = (item: SearchProduct) => {
     const isWishlisted = wishlistStatus[item.id] || false;
     const onToggle = () => toggleWishlist(item);
@@ -243,12 +320,7 @@ export default function SearchResultsScreen() {
   };
 
   if (loading) {
-    return (
-      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <ThemedText style={styles.loadingText}>Loading products...</ThemedText>
-      </View>
-    );
+    return <SearchSkeleton />;
   }
 
   return (
@@ -281,7 +353,10 @@ export default function SearchResultsScreen() {
           />
           {searching && <ActivityIndicator size="small" color={colors.primary} />}
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => handleSearch('')}>
+            <TouchableOpacity onPress={() => { 
+              lightHaptic();          // haptic when clearing search text
+              handleSearch('');
+            }}>
               <Icon name="times-circle" size={16} color={colors.placeholder} />
             </TouchableOpacity>
           )}
@@ -310,6 +385,7 @@ export default function SearchResultsScreen() {
           <TouchableOpacity
             style={[styles.filterChip, { backgroundColor: colors.surface, borderColor: colors.border }]}
             onPress={() => {
+              lightHaptic();          // haptic when clearing all filters
               setSelectedCategory(null);
               setSelectedSort(null);
               setSearchQuery('');
@@ -449,7 +525,6 @@ export default function SearchResultsScreen() {
   );
 }
 
-// Styles remain exactly the same as your original file (no changes)
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { paddingBottom: 80 },
@@ -546,8 +621,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+    padding: 10,
   },
-  featuredImage: { width: '100%', height: 250, resizeMode: 'cover' },
+  featuredImage: { width: '100%', height: 350, resizeMode: 'cover',   borderRadius: 20},
   featuredBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -556,7 +632,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   featuredBadgeText: { color: 'grey', fontSize: 12, fontWeight: '700', letterSpacing: 1 },
-  featuredInfo: { paddingHorizontal: 16, paddingBottom: 16 },
+  featuredInfo: { paddingHorizontal: 16, paddingBottom: 16 ,marginTop:20},
   featuredCategory: { fontSize: 11, fontWeight: '500', letterSpacing: 0.5, marginTop: 4, marginBottom: 4 },
   featuredName: { fontSize: 18, fontWeight: '700', marginBottom: 4 },
   featuredPrice: { fontSize: 20, fontWeight: '700', marginBottom: 6 },
@@ -575,9 +651,9 @@ const styles = StyleSheet.create({
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap:10,
+    gap: 10,
     justifyContent: 'space-between',
-    paddingHorizontal: 8,
+    paddingHorizontal: 9,
   },
   card: {
     borderRadius: 16,

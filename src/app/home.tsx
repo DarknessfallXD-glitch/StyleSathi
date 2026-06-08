@@ -1,3 +1,5 @@
+// Reminder remove timeout
+
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -157,7 +159,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     loadAllData();
-  }, []);
+  }, []); 
 
   const loadAllData = async () => {
     setLoading(true);
