@@ -112,6 +112,11 @@ export default function SavedScreen() {
     });
   };
 
+  const handleBackPress = () => {
+    lightHaptic(); // 👈 haptic on back arrow tap
+    router.replace('./try-on');
+  };
+
   const renderWishlistItem = ({ item }: { item: WishlistItem }) => (
     <WishlistItemCard item={item} onRemove={handleRemove} />
   );
@@ -124,7 +129,7 @@ export default function SavedScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.replace('./try-on')}>
+          <TouchableOpacity onPress={handleBackPress}>
             <Icon name="arrow-left" size={22} color={colors.icon} />
           </TouchableOpacity>
           <ThemedText style={styles.headerTitle}>Saved Items</ThemedText>
