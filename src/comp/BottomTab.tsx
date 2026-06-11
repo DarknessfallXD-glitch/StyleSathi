@@ -10,17 +10,27 @@ export default function BottomTab({ active }) {
 
   const tabs = [
     { name: "home", label: "home", icon: "home", route: "./home" },
-    { name: "search", label: "search-result", icon: "search", route: "./search-result" },
+    {
+      name: "search",
+      label: "search-result",
+      icon: "search",
+      route: "./search-result",
+    },
     { name: "Try-On", label: "try-on", icon: "camera", route: "./try-on" },
     { name: "saved", label: "saved", icon: "heart-o", route: "./saved" },
     { name: "profile", label: "profile", icon: "user", route: "./profile" },
   ];
 
   return (
-    <View style={[styles.bottomTab, { 
-      backgroundColor: colors.tabBar,
-      borderTopColor: colors.tabBarBorder 
-    }]}>
+    <View
+      style={[
+        styles.bottomTab,
+        {
+          backgroundColor: colors.tabBar,
+          borderTopColor: colors.tabBarBorder,
+        },
+      ]}
+    >
       {tabs.map((tab) => {
         const isActive = active === tab.label;
 
@@ -36,7 +46,13 @@ export default function BottomTab({ active }) {
               size={22}
               color={isActive ? colors.primary : colors.textSecondary}
             />
-            <Text style={[styles.tabText, { color: isActive ? colors.primary : colors.textSecondary }, isActive && styles.tabActive]}>
+            <Text
+              style={[
+                styles.tabText,
+                { color: isActive ? colors.primary : colors.textSecondary },
+                isActive && styles.tabActive,
+              ]}
+            >
               {tab.name}
             </Text>
           </TouchableOpacity>
@@ -69,6 +85,6 @@ const styles = StyleSheet.create({
   },
 
   tabActive: {
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

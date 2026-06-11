@@ -168,7 +168,7 @@ export default function ProfileScreen() {
         <ThemedText type="secondary" style={styles.versionText}>STYLESATHY VERSION 2.4.1</ThemedText>
       </ScrollView>
 
-      <BottomTab active="Profile" />
+      <BottomTab active="profile" />
     </View>
   );
 }

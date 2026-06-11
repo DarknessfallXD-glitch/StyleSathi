@@ -12,8 +12,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome";
-import Octicons from "react-native-vector-icons/Octicons";
+import { FontAwesome as Icon } from '@expo/vector-icons';
+import { Octicons } from '@expo/vector-icons';
 import BottomTab from "../comp/BottomTab";
 import { ProductCard } from "../comp/ProductCard";
 import { ThemedText } from "../comp/ThemedText";
