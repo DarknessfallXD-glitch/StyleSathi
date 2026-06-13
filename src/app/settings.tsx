@@ -17,10 +17,9 @@ import { ThemedText } from '../comp/ThemedText';
 export default function SettingsScreen() {
   const router = useRouter();
   const { colors, isDarkMode, toggleTheme } = useTheme();
-  
+
   // Settings states
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [emailNotifications, setEmailNotifications] = useState(true);
   const [saveHistory, setSaveHistory] = useState(true);
   const [language, setLanguage] = useState('English');
   const [selectedLanguage, setSelectedLanguage] = useState('english');
@@ -36,7 +35,6 @@ export default function SettingsScreen() {
       if (settings) {
         const parsed = JSON.parse(settings);
         setNotificationsEnabled(parsed.notificationsEnabled ?? true);
-        setEmailNotifications(parsed.emailNotifications ?? true);
         setSaveHistory(parsed.saveHistory ?? true);
         setSelectedLanguage(parsed.selectedLanguage ?? 'english');
         setLanguage(parsed.language ?? 'English');
@@ -64,13 +62,8 @@ export default function SettingsScreen() {
   };
 
   const handleToggleDarkMode = (value: boolean) => {
-    toggleTheme(); // Use the theme context toggle
+    toggleTheme();
     saveSetting('darkModeEnabled', value);
-  };
-
-  const handleToggleEmailNotifications = (value: boolean) => {
-    setEmailNotifications(value);
-    saveSetting('emailNotifications', value);
   };
 
   const handleToggleSaveHistory = (value: boolean) => {
@@ -86,51 +79,25 @@ export default function SettingsScreen() {
     Alert.alert('Language Changed', `Language set to ${lang}`);
   };
 
-  const handleClearCache = () => {
-    Alert.alert(
-      'Clear Cache',
-      'Are you sure you want to clear all cached data? This will not delete your saved items.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear',
-          onPress: async () => {
-            try {
-              const wishlist = await AsyncStorage.getItem('wishlist');
-              await AsyncStorage.clear();
-              if (wishlist) {
-                await AsyncStorage.setItem('wishlist', wishlist);
-              }
-              Alert.alert('Success', 'Cache cleared successfully!');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to clear cache');
-            }
-          },
-          style: 'destructive',
-        },
-      ]
-    );
-  };
-
-  const SettingItem = ({ 
-    icon, 
-    title, 
-    subtitle, 
+  const SettingItem = ({
+    icon,
+    title,
+    subtitle,
     type = 'link',
     value,
     onPress,
-    onValueChange
-  }: { 
-    icon: string; 
-    title: string; 
-    subtitle?: string; 
+    onValueChange,
+  }: {
+    icon: string;
+    title: string;
+    subtitle?: string;
     type?: 'link' | 'toggle' | 'select';
     value?: boolean;
     onPress?: () => void;
     onValueChange?: (value: boolean) => void;
   }) => (
-    <TouchableOpacity 
-      style={[styles.settingItem, { backgroundColor: colors.surface }]} 
+    <TouchableOpacity
+      style={[styles.settingItem, { backgroundColor: colors.surface }]}
       onPress={onPress}
       disabled={type === 'toggle'}
       activeOpacity={type === 'toggle' ? 1 : 0.7}
@@ -141,7 +108,11 @@ export default function SettingsScreen() {
         </View>
         <View style={styles.settingTextContainer}>
           <ThemedText style={styles.settingTitle}>{title}</ThemedText>
-          {subtitle && <ThemedText type="secondary" style={styles.settingSubtitle}>{subtitle}</ThemedText>}
+          {subtitle && (
+            <ThemedText type="secondary" style={styles.settingSubtitle}>
+              {subtitle}
+            </ThemedText>
+          )}
         </View>
       </View>
       {type === 'toggle' && (
@@ -156,14 +127,16 @@ export default function SettingsScreen() {
         <Icon name="chevron-right" size={16} color={colors.textSecondary} />
       )}
       {type === 'select' && (
-        <ThemedText style={[styles.selectedValue, { color: colors.primary }]}>{value}</ThemedText>
+        <ThemedText style={[styles.selectedValue, { color: colors.primary }]}>
+          {value}
+        </ThemedText>
       )}
     </TouchableOpacity>
   );
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
@@ -179,7 +152,7 @@ export default function SettingsScreen() {
         {/* Preferences Section */}
         <View style={styles.section}>
           <ThemedText style={styles.sectionTitle}>Preferences</ThemedText>
-          
+
           <SettingItem
             icon="bell-o"
             title="Push Notifications"
@@ -188,7 +161,7 @@ export default function SettingsScreen() {
             value={notificationsEnabled}
             onValueChange={handleToggleNotifications}
           />
-          
+
           <SettingItem
             icon="moon-o"
             title="Dark Mode"
@@ -197,16 +170,7 @@ export default function SettingsScreen() {
             value={isDarkMode}
             onValueChange={handleToggleDarkMode}
           />
-          
-          <SettingItem
-            icon="envelope-o"
-            title="Email Notifications"
-            subtitle="Get emails about your orders and promotions"
-            type="toggle"
-            value={emailNotifications}
-            onValueChange={handleToggleEmailNotifications}
-          />
-          
+
           <SettingItem
             icon="history"
             title="Save Search History"
@@ -220,8 +184,8 @@ export default function SettingsScreen() {
         {/* Language Section */}
         <View style={styles.section}>
           <ThemedText style={styles.sectionTitle}>Language</ThemedText>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={[styles.languageOption, { backgroundColor: colors.surface }]}
             onPress={() => handleLanguageSelect('English', 'english')}
           >
@@ -233,8 +197,8 @@ export default function SettingsScreen() {
               <Icon name="check" size={16} color={colors.primary} />
             )}
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={[styles.languageOption, { backgroundColor: colors.surface }]}
             onPress={() => handleLanguageSelect('नेपाली', 'nepali')}
           >
@@ -251,25 +215,13 @@ export default function SettingsScreen() {
         {/* Account Section */}
         <View style={styles.section}>
           <ThemedText style={styles.sectionTitle}>Account</ThemedText>
-          
+
           <SettingItem
             icon="user-o"
             title="Edit Profile"
             onPress={() => router.push('/edit-profile')}
           />
-          
-          <SettingItem
-            icon="credit-card"
-            title="Payment Methods"
-            onPress={() => router.push('/payment-methods')}
-          />
-          
-          <SettingItem
-            icon="map-marker"
-            title="Shipping Addresses"
-            onPress={() => router.push('/addresses')}
-          />
-          
+
           <SettingItem
             icon="lock"
             title="Privacy & Security"
@@ -280,25 +232,25 @@ export default function SettingsScreen() {
         {/* Support Section */}
         <View style={styles.section}>
           <ThemedText style={styles.sectionTitle}>Support</ThemedText>
-          
+
           <SettingItem
             icon="question-circle-o"
             title="Help Center"
             onPress={() => router.push('/help')}
           />
-          
+
           <SettingItem
             icon="star-o"
             title="Rate Us"
             onPress={() => Alert.alert('Rate Us', 'Thank you for rating StyleSathy!')}
           />
-          
+
           <SettingItem
             icon="share-alt"
             title="Share App"
             onPress={() => Alert.alert('Share', 'Share StyleSathy with your friends!')}
           />
-          
+
           <SettingItem
             icon="info-circle"
             title="About"
@@ -306,25 +258,10 @@ export default function SettingsScreen() {
           />
         </View>
 
-        {/* Data Management */}
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Data Management</ThemedText>
-          
-          <SettingItem
-            icon="trash-o"
-            title="Clear Cache"
-            onPress={handleClearCache}
-          />
-          
-          <SettingItem
-            icon="download"
-            title="Export Data"
-            onPress={() => Alert.alert('Export Data', 'Your data export will be sent to your email.')}
-          />
-        </View>
-
         {/* Version */}
-        <ThemedText type="secondary" style={styles.versionText}>Version 2.4.1</ThemedText>
+        <ThemedText type="secondary" style={styles.versionText}>
+          Version 2.4.1
+        </ThemedText>
       </ScrollView>
     </View>
   );
