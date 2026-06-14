@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { Stack } from "expo-router";
 import * as SplashScreen from 'expo-splash-screen';
 import { ThemeProvider } from "../Context/ThemeContext";
+import { ErrorBoundary } from '../comp/ErrorBoundary'
+import { NetworkStatus } from '../comp/NetworkStatus';
 
 // Prevent the splash screen from auto-hiding before we're ready
 SplashScreen.preventAutoHideAsync();
@@ -16,7 +18,9 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <ThemeProvider>
+    <ErrorBoundary>
+          <ThemeProvider>
+            <NetworkStatus />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="welcome" />
@@ -30,5 +34,7 @@ export default function RootLayout() {
         <Stack.Screen name="+not-found" />
       </Stack>
     </ThemeProvider>
+    </ErrorBoundary>
+
   );
 }

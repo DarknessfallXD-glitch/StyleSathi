@@ -1,5 +1,3 @@
-// Reminder remove timeout
-
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -152,6 +150,7 @@ export default function HomeScreen() {
   const [searchText, setSearchText] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null); // 👈 new error state
   const [justForYou, setJustForYou] = useState<Product[]>([]);
   const [featuredCollections, setFeaturedCollections] = useState<FeaturedCollection[]>([]);
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
@@ -159,11 +158,12 @@ export default function HomeScreen() {
 
   useEffect(() => {
     loadAllData();
-  }, []); 
+  }, []);
 
-  const loadAllData = async () => {
+  // Retry helper with exponential backoff
+  const loadAllData = async (retryCount = 0) => {
     setLoading(true);
-     await new Promise(resolve => setTimeout(resolve, 3000));
+    setError(null);
     try {
       const [products, featured, searches] = await Promise.all([
         fetchJustForYou(),
@@ -176,17 +176,28 @@ export default function HomeScreen() {
       if (products && products.length > 0) {
         await checkWishlistStatus(products);
       }
-    } catch (error) {
-      console.error("Error loading data:", error);
+    } catch (err) {
+      console.error("Error loading data:", err);
+      if (retryCount < 3) {
+        // Retry with exponential backoff: 1s, 2s, 4s
+        const delay = 1000 * Math.pow(2, retryCount);
+        setTimeout(() => loadAllData(retryCount + 1), delay);
+        return; // Don't set error or finalize loading yet
+      } else {
+        setError("Unable to load data. Please check your connection and try again.");
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (error === null || retryCount >= 3) {
+        // Only set loading false if we're not waiting for another retry
+        setLoading(false);
+      }
     }
   };
 
   const onRefresh = async () => {
     lightHaptic();
     setRefreshing(true);
+    setError(null);
     await loadAllData();
     setRefreshing(false);
   };
@@ -245,8 +256,25 @@ export default function HomeScreen() {
     );
   };
 
-  if (loading) {
+  // Show skeleton while loading (no error)
+  if (loading && !error) {
     return <HomeSkeleton />;
+  }
+
+  // Show error state with retry button
+  if (error) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.errorContainer, { backgroundColor: colors.surface }]}>
+          <Icon name="exclamation-triangle" size={50} color={colors.primary} />
+          <ThemedText style={styles.errorTitle}>Oops! Something went wrong</ThemedText>
+          <ThemedText style={styles.errorMessage}>{error}</ThemedText>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={() => loadAllData()}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -395,4 +423,10 @@ const styles = StyleSheet.create({
   emptyFeaturedText: { fontSize: 12, marginTop: 8 },
   emptyRecentContainer: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 12, borderRadius: 20, gap: 8 },
   emptyRecentText: { fontSize: 12 },
+  // New styles for error state
+  errorContainer: { flex: 1, justifyContent: "center", alignItems: "center", padding: 20, marginHorizontal: 20, borderRadius: 16 },
+  errorTitle: { fontSize: 18, fontWeight: "bold", marginTop: 16, marginBottom: 8 },
+  errorMessage: { fontSize: 14, textAlign: "center", marginBottom: 24 },
+  retryButton: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 25 },
+  retryButtonText: { color: "#FFF", fontWeight: "600" },
 });
