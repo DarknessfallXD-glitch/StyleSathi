@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { supabase } from "../lib/supabase";
+import { getUserProfile } from "../services/api/user";  // 👈 new import
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -202,29 +203,38 @@ export default function SignUpScreen() {
         router.replace("/signin");
         return;
       }
-      
-      // Store user data locally
+
+      // Store user data locally (basic info)
       const userData = {
         id: data.user?.id,
         name: name.trim(),
         email: email.trim().toLowerCase(),
         provider: "email",
         registeredAt: new Date().toISOString(),
-        isAuthenticated: false, // Email confirmation pending
+        isAuthenticated: !!data.session, // true if we have a session
       };
 
       await AsyncStorage.setItem("user", JSON.stringify(userData));
 
       console.log("✅ Sign up successful for:", email);
-      
-      let message = "Account created successfully!";
-      if (!data.session) {
-        message = "Account created! Please check your email to confirm your account before signing in.";
+
+      // 🔥 NEW: If we have a session (email confirmation is disabled), sync with backend immediately
+      if (data.session) {
+        const token = data.session.access_token;
+        await AsyncStorage.setItem('authToken', token);
+        // Call backend to create/update user in the database
+        const userProfile = await getUserProfile();
+        console.log('User synced with backend:', userProfile);
+        Alert.alert('Welcome!', `Account created for ${userProfile.email}`);
+        router.replace('/home');
+      } else {
+        // No session – email confirmation required
+        Alert.alert(
+          "Success",
+          "Account created! Please check your email to confirm your account before signing in."
+        );
+        router.replace("/personalize1");
       }
-      
-      Alert.alert("Success", message);
-      router.replace("/signin"); // Go to sign in page instead of personalize
-      
     } catch (error: any) {
       console.error("❌ Sign up error:", error);
       const errorMessage = handleSupabaseError(error);
@@ -254,6 +264,7 @@ export default function SignUpScreen() {
         if (error) throw error;
         
         if (data?.user) {
+          // Store user data locally
           const userData = {
             id: data.user?.id,
             email: data.user?.email,
@@ -262,8 +273,15 @@ export default function SignUpScreen() {
             registeredAt: new Date().toISOString(),
             isAuthenticated: true,
           };
-          
           await AsyncStorage.setItem("user", JSON.stringify(userData));
+
+          // 🔥 Sync with backend using the session token
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            await AsyncStorage.setItem('authToken', session.access_token);
+            await getUserProfile(); // backend creates/updates user
+          }
+
           Alert.alert("Success", `Welcome ${userData.name}!`);
           router.replace("/personalize1");
         } else {
