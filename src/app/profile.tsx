@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   Image,
@@ -10,28 +10,76 @@ import {
   TouchableOpacity,
   View,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import BottomTab from "../comp/BottomTab";
 import { useTheme } from "../Context/ThemeContext";
 import { ThemedText } from "../comp/ThemedText";
+import { supabase } from "../lib/supabase";
+import { getUserProfile } from "../services/api/user";
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { colors, isDarkMode } = useTheme();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Load user data from AsyncStorage (cached) and sync with backend
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      // First try to get cached user data
+      const cachedUser = await AsyncStorage.getItem("user");
+      if (cachedUser) {
+        const parsed = JSON.parse(cachedUser);
+        setUser(parsed);
+        setLoading(false);
+      }
+
+      // Then fetch fresh from backend to update (if token exists)
+      const token = await AsyncStorage.getItem("authToken");
+      if (token) {
+        const freshUser = await getUserProfile();
+        // Merge/update the user state
+        setUser((prev: any) => ({
+          ...prev,
+          ...freshUser,
+          name: freshUser.full_name || prev?.name,
+          email: freshUser.email || prev?.email,
+          created_at: freshUser.created_at || prev?.created_at,
+        }));
+        // Update cache
+        await AsyncStorage.setItem(
+          "user",
+          JSON.stringify({
+            id: freshUser.id,
+            name: freshUser.full_name || freshUser.email?.split("@")[0],
+            email: freshUser.email,
+            provider: "email",
+            isAuthenticated: true,
+            created_at: freshUser.created_at,
+          })
+        );
+      }
+    } catch (error) {
+      console.error("Failed to load user data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     const performLogout = async () => {
       try {
-        // Clear all auth-related keys
-        await AsyncStorage.multiRemove([
-          "user",
-          "userId",
-          "supabase.auth.token",
-          "supabase.session",
-        ]);
-        console.log("User removed from storage");
-        // Show success message and navigate
+        // Sign out from Supabase
+        await supabase.auth.signOut();
+        // Clear all local storage
+        await AsyncStorage.multiRemove(["user", "authToken", "userId"]);
+        console.log("Logged out successfully");
         if (Platform.OS === 'web') {
           window.alert("You have been successfully logged out.");
           router.replace("/welcome");
@@ -42,29 +90,34 @@ export default function ProfileScreen() {
         }
       } catch (error) {
         console.error("Logout error:", error);
-        if (Platform.OS === 'web') {
-          window.alert("Failed to log out. Please try again.");
-        } else {
-          Alert.alert("Error", "Failed to log out. Please try again.");
-        }
+        Alert.alert("Error", "Failed to log out. Please try again.");
       }
     };
 
-    // Confirmation dialog
     if (Platform.OS === 'web') {
       const confirm = window.confirm("Are you sure you want to log out?");
       if (confirm) performLogout();
     } else {
       Alert.alert("Log Out", "Are you sure you want to log out?", [
         { text: "Cancel", style: "cancel" },
-        {
-          text: "Log Out",
-          onPress: performLogout,
-          style: "destructive",
-        },
+        { text: "Log Out", onPress: performLogout, style: "destructive" },
       ]);
     }
   };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  const displayName = user?.name || user?.full_name || "User";
+  const displayEmail = user?.email || "No email";
+  const memberSince = user?.created_at
+    ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    : "Recently";
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -86,15 +139,21 @@ export default function ProfileScreen() {
         <View style={styles.profileSection}>
           <View style={styles.avatarWrapper}>
             <Image
-              source={{ uri: "https://i.pravatar.cc/150" }}
+              source={{
+                uri: user?.avatar_url || "https://i.pravatar.cc/150?img=3",
+              }}
               style={styles.avatar}
             />
             <View style={[styles.onlineDot, { borderColor: colors.background }]} />
           </View>
 
-          <ThemedText style={styles.userName}>Reejan Koirala</ThemedText>
-          <ThemedText type="secondary" style={styles.memberSince}>Member since June 2023</ThemedText>
-          <ThemedText style={[styles.tierLink, { color: colors.primary }]}>Style Icon Tier</ThemedText>
+          <ThemedText style={styles.userName}>{displayName}</ThemedText>
+          <ThemedText type="secondary" style={styles.memberSince}>
+            Member since {memberSince}
+          </ThemedText>
+          <ThemedText style={[styles.tierLink, { color: colors.primary }]}>
+            Style Icon Tier
+          </ThemedText>
         </View>
 
         {/* Stats */}
@@ -116,11 +175,21 @@ export default function ProfileScreen() {
 
         {/* Tabs */}
         <View style={styles.tabs}>
-          <ThemedText style={[styles.tabActiveText, { color: colors.primary, borderBottomColor: colors.primary }]}>
+          <ThemedText
+            style={[
+              styles.tabActiveText,
+              { color: colors.primary, borderBottomColor: colors.primary },
+            ]}
+          >
             My Wardrobe
           </ThemedText>
           <TouchableOpacity onPress={() => router.push("/subscription")}>
-            <ThemedText style={[styles.tabTextInactive, { color: colors.textSecondary }]}>
+            <ThemedText
+              style={[
+                styles.tabTextInactive,
+                { color: colors.textSecondary },
+              ]}
+            >
               Subscription
             </ThemedText>
           </TouchableOpacity>
@@ -157,15 +226,16 @@ export default function ProfileScreen() {
         </View>
 
         {/* Logout */}
-        <TouchableOpacity 
-          style={[styles.logoutButton, { borderColor: colors.primary }]} 
+        <TouchableOpacity
+          style={[styles.logoutButton, { borderColor: colors.primary }]}
           onPress={handleLogout}
         >
           <Text style={[styles.logoutText, { color: colors.primary }]}>Log Out Account</Text>
         </TouchableOpacity>
 
-        {/* Version */}
-        <ThemedText type="secondary" style={styles.versionText}>STYLESATHY VERSION 2.4.1</ThemedText>
+        <ThemedText type="secondary" style={styles.versionText}>
+          STYLESATHY VERSION 2.4.1
+        </ThemedText>
       </ScrollView>
 
       <BottomTab active="profile" />
@@ -173,38 +243,14 @@ export default function ProfileScreen() {
   );
 }
 
-// styles unchanged
-
+// ---------- styles (unchanged) ----------
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 80,
-  },
-
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-
-  profileSection: {
-    alignItems: "center",
-    marginBottom: 20,
-  },
-
+  container: { flex: 1 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 50, paddingBottom: 80 },
+  header: { flexDirection: "row", justifyContent: "space-between", marginBottom: 20 },
+  profileSection: { alignItems: "center", marginBottom: 20 },
   avatarWrapper: { position: "relative" },
-
-  avatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-  },
-
+  avatar: { width: 90, height: 90, borderRadius: 45 },
   onlineDot: {
     position: "absolute",
     bottom: 4,
@@ -215,124 +261,25 @@ const styles = StyleSheet.create({
     backgroundColor: "#22C55E",
     borderWidth: 2,
   },
-
-  userName: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginTop: 10,
-  },
-
-  memberSince: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-
-  tierLink: {
-    marginTop: 6,
-    fontSize: 13,
-  },
-
-  statsContainer: {
-    flexDirection: "row",
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-  },
-
+  userName: { fontSize: 20, fontWeight: "700", marginTop: 10 },
+  memberSince: { fontSize: 12, marginTop: 4 },
+  tierLink: { marginTop: 6, fontSize: 13 },
+  statsContainer: { flexDirection: "row", borderRadius: 16, padding: 20, marginBottom: 20 },
   statItem: { flex: 1, alignItems: "center" },
-
-  statNumber: {
-    fontSize: 24,
-    fontWeight: "700",
-    marginTop: 6,
-  },
-
-  statLabel: {
-    fontSize: 11,
-    marginTop: 4,
-  },
-
-  statDivider: {
-    width: 1,
-    height: 50,
-  },
-
-  tabs: {
-    flexDirection: "row",
-    justifyContent: "space-evenly",
-    marginBottom: 20,
-  },
-
-  tabActiveText: {
-    fontSize: 15,
-    fontWeight: "600",
-    borderBottomWidth: 2,
-    paddingBottom: 4,
-  },
-
-  tabTextInactive: {
-    fontSize: 15,
-    fontWeight: "500",
-  },
-
-  recentHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 10,
-  },
-
-  recentTitle: {
-    fontWeight: "600",
-    fontSize: 16,
-  },
-
-  viewAllText: {
-    fontSize: 12,
-  },
-
-  recentContainer: {
-    flexDirection: "row",
-    gap: 10,
-  },
-
-  imageCard: {
-    flex: 1,
-    borderRadius: 16,
-    overflow: "hidden",
-  },
-
-  cardImage: {
-    width: "100%",
-    height: 140,
-  },
-
-  imageLabel: {
-    position: "absolute",
-    bottom: 8,
-    left: 8,
-    backgroundColor: "#00000088",
-    color: "#fff",
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    fontSize: 11,
-  },
-
-  logoutButton: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 14,
-    alignItems: "center",
-    marginTop: 20,
-  },
-
-  logoutText: {
-    fontWeight: "600",
-    fontSize: 15,
-  },
-
-  versionText: {
-    textAlign: "center",
-    fontSize: 10,
-    marginTop: 20,
-  },
+  statNumber: { fontSize: 24, fontWeight: "700", marginTop: 6 },
+  statLabel: { fontSize: 11, marginTop: 4 },
+  statDivider: { width: 1, height: 50 },
+  tabs: { flexDirection: "row", justifyContent: "space-evenly", marginBottom: 20 },
+  tabActiveText: { fontSize: 15, fontWeight: "600", borderBottomWidth: 2, paddingBottom: 4 },
+  tabTextInactive: { fontSize: 15, fontWeight: "500" },
+  recentHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
+  recentTitle: { fontWeight: "600", fontSize: 16 },
+  viewAllText: { fontSize: 12 },
+  recentContainer: { flexDirection: "row", gap: 10 },
+  imageCard: { flex: 1, borderRadius: 16, overflow: "hidden" },
+  cardImage: { width: "100%", height: 140 },
+  imageLabel: { position: "absolute", bottom: 8, left: 8, backgroundColor: "#00000088", color: "#fff", paddingHorizontal: 8, borderRadius: 6, fontSize: 11 },
+  logoutButton: { borderWidth: 1, borderRadius: 12, padding: 14, alignItems: "center", marginTop: 20 },
+  logoutText: { fontWeight: "600", fontSize: 15 },
+  versionText: { textAlign: "center", fontSize: 10, marginTop: 20 },
 });

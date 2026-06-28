@@ -2,6 +2,7 @@ import { apiClient } from './client';
 
 export const getUserProfile = async () => {
   const response = await apiClient.get('/user/me');
+  console.log("Response",response.data)
   return response.data;
 };
 

@@ -1,10 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as AuthSession from "expo-auth-session";
+import * as AppleAuthentication from "expo-apple-authentication";
 import { makeRedirectUri } from "expo-auth-session";
 import * as Google from "expo-auth-session/providers/google";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import * as AppleAuthentication from 'expo-apple-authentication';
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -18,9 +17,12 @@ import {
   View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
+import { supabase } from "../lib/supabase";
+import { getUserProfile } from "../services/api/user";
 
-console.log("Redirect URI:", AuthSession.makeRedirectUri());
 WebBrowser.maybeCompleteAuthSession();
+
+// Fixed nonce for Google (must match between request and signInWithIdToken)
 
 export default function SignInScreen() {
   const router = useRouter();
@@ -29,23 +31,28 @@ export default function SignInScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
+    {},
+  );
   const [connectionError, setConnectionError] = useState<string | null>(null);
 
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(30));
 
+  // ----- Google OAuth (expo-auth-session) -----
   const [request, response, promptAsync] = Google.useAuthRequest({
     androidClientId:
       "478569591036-6ss1sbl1mqhuggtdm5ekun5o188ojdsl.apps.googleusercontent.com",
     iosClientId:
       "478569591036-4stvl2r1r8snildbnmgvlhajn2b3l12a.apps.googleusercontent.com",
     webClientId:
-      "478569591036-v0bj4glv8o9v7q66s7ovp86lfki0n66k.apps.googleusercontent.com",
+      "478569591036-pva3u54atkvh8cr8sm7lds2bsj5dokvl.apps.googleusercontent.com",
     redirectUri: makeRedirectUri({
       scheme: "com.darknessfallxd.stylesathi",
     }),
+    responseType: "id_token",
   });
 
   useEffect(() => {
@@ -64,16 +71,25 @@ export default function SignInScreen() {
     ]).start();
   }, []);
 
-  // REMOVED Supabase session check – we don't need it for Google-only local login
-  // You can add a simple check if user exists in AsyncStorage (optional)
-  // const checkLocalUser = async () => {
-  //   const user = await AsyncStorage.getItem("user");
-  //   if (user) router.replace("/home");
-  // };
-  // useEffect(() => {
-  //   checkLocalUser();
-  // }, []);
+  // Check existing session on mount
+  useEffect(() => {
+    checkSession();
+  }, []);
 
+  const checkSession = async () => {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session) {
+        router.replace("/home");
+      }
+    } catch (error) {
+      // ignore
+    }
+  };
+
+  // ----- Validation -----
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
@@ -81,52 +97,74 @@ export default function SignInScreen() {
 
   const validateForm = (): boolean => {
     const newErrors: { email?: string; password?: string } = {};
-
     if (!email.trim()) {
       newErrors.email = "Email is required";
     } else if (!validateEmail(email)) {
       newErrors.email = "Please enter a valid email address";
     }
-
     if (!password) {
       newErrors.password = "Password is required";
     } else if (password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Helper for network errors (kept for consistency)
-  const handleNetworkError = (error: any): string => {
-    console.error("Error:", error);
+  // ----- Error helper (reuse from sign-up) -----
+  const handleSupabaseError = (error: any): string => {
+    console.error("Supabase error:", error);
     if (!error) return "Unable to connect. Please check your internet.";
-    if (error.message === "Failed to fetch") return "Network error. Please check your connection.";
+    if (error.message === "Failed to fetch")
+      return "Network error. Please check your connection.";
+    if (error.message?.includes("network"))
+      return "Network error. Please try again.";
+    if (error.message?.includes("timeout"))
+      return "Connection timeout. Please try again.";
+    if (error.message?.includes("Invalid login credentials"))
+      return "Invalid email or password.";
+    if (error.message?.includes("Email not confirmed"))
+      return "Please verify your email before signing in.";
     return "Something went wrong. Please try again.";
   };
 
-  // Email/Password Sign In (still using local storage only, no backend)
+  // ----- Email/Password Sign In -----
   const handleSignIn = async () => {
     setErrors({});
     setConnectionError(null);
     if (!validateForm()) return;
-    setIsLoading(true);
 
+    setIsLoading(true);
     try {
-      // Simulate API call – in reality you'd check credentials against a backend
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // For demo, just accept any email/password (add real validation later)
-      const userData = {
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
+        password,
+      });
+      if (error) throw error;
+
+      // Store token and sync with backend
+      const token = data.session?.access_token;
+      if (token) {
+        await AsyncStorage.setItem("authToken", token);
+        // Sync user with backend (creates row if missing)
+        await getUserProfile();
+      }
+
+      // Store user data locally
+      const userData = {
+        id: data.user?.id,
+        email: data.user?.email,
+        name: data.user?.user_metadata?.full_name || email,
         provider: "email",
         loggedInAt: new Date().toISOString(),
+        isAuthenticated: true,
       };
       await AsyncStorage.setItem("user", JSON.stringify(userData));
+
       Alert.alert("Success", "Logged in successfully!");
       router.replace("/home");
     } catch (error: any) {
-      const errorMessage = handleNetworkError(error);
+      const errorMessage = handleSupabaseError(error);
       setConnectionError(errorMessage);
       Alert.alert("Login Failed", errorMessage);
     } finally {
@@ -134,51 +172,93 @@ export default function SignInScreen() {
     }
   };
 
-  // ========== GOOGLE LOGIN (NO SUPABASE) ==========
+  // ----- Google Sign In -----
   const handleGoogleLogin = () => {
     setConnectionError(null);
+    setGoogleLoading(true);
     promptAsync();
   };
 
-  // Handle Google response – fetch user info and store locally
   useEffect(() => {
     if (response?.type === "success") {
-      const { authentication } = response;
-      if (!authentication?.accessToken) {
-        Alert.alert("Error", "Failed to get access token");
+      const { authentication, params } = response;
+      const idToken = authentication?.idToken || params?.id_token;
+
+      if (!idToken) {
+        Alert.alert("Error", "No ID token received from Google");
+        setGoogleLoading(false);
         return;
       }
 
-      fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-        headers: { Authorization: `Bearer ${authentication.accessToken}` },
-      })
-        .then((res) => res.json())
-        .then(async (userInfo) => {
+      supabase.auth
+        .signInWithIdToken({
+          provider: "google",
+          token: idToken, // must match the one sent in request
+        })
+        .then(async ({ data, error }) => {
+          if (error) {
+            // If user already exists, try to get session
+            if (error.message?.includes("User already registered")) {
+              const { data: sessionData, error: sessionError } =
+                await supabase.auth.getSession();
+              if (sessionError) throw sessionError;
+              if (sessionData.session) {
+                data = sessionData;
+              } else {
+                throw new Error("User exists but no session");
+              }
+            } else {
+              throw error;
+            }
+          }
+
+          if (!data?.user) {
+            throw new Error("No user data returned");
+          }
+
           const userData = {
-            id: userInfo.sub,
-            email: userInfo.email,
-            name: userInfo.name || userInfo.email?.split("@")[0],
-            picture: userInfo.picture,
+            id: data.user.id,
+            email: data.user.email,
+            name:
+              data.user.user_metadata?.full_name ||
+              data.user.email?.split("@")[0],
             provider: "google",
             loggedInAt: new Date().toISOString(),
+            isAuthenticated: true,
           };
           await AsyncStorage.setItem("user", JSON.stringify(userData));
+
+          const token = data.session?.access_token;
+          if (token) {
+            await AsyncStorage.setItem("authToken", token);
+            // Sync with backend (creates row if needed)
+            await getUserProfile();
+          }
+
           Alert.alert("Success", `Welcome ${userData.name}!`);
           router.replace("/home");
+          setGoogleLoading(false);
         })
         .catch((err) => {
-          console.error(err);
-          Alert.alert("Error", "Failed to get Google user info");
+          console.error("Google sign-in error:", err);
+          const errorMessage = handleSupabaseError(err);
+          setConnectionError(errorMessage);
+          Alert.alert("Login Failed", errorMessage);
+          setGoogleLoading(false);
         });
     } else if (response?.type === "error") {
-      console.log("Google sign in cancelled or failed");
+      console.error("Google OAuth error:", response.error);
+      setGoogleLoading(false);
+    } else if (response?.type === "cancel") {
+      console.log("Google sign-in cancelled");
+      setGoogleLoading(false);
     }
   }, [response]);
 
-  // Apple Sign-In (placeholder, no database)
+  // ----- Apple Sign In (placeholder) -----
   const handleAppleLogin = async () => {
-    if (Platform.OS === 'web') {
-      Alert.alert('Info', 'Apple Sign-In is only available on iOS devices');
+    if (Platform.OS === "web") {
+      Alert.alert("Info", "Apple Sign-In is only available on iOS devices");
       return;
     }
 
@@ -188,7 +268,10 @@ export default function SignInScreen() {
     try {
       const isAvailable = await AppleAuthentication.isAvailableAsync();
       if (!isAvailable) {
-        Alert.alert('Not Available', 'Apple Sign-In is not available on this device');
+        Alert.alert(
+          "Not Available",
+          "Apple Sign-In is not available on this device",
+        );
         setAppleLoading(false);
         return;
       }
@@ -200,20 +283,24 @@ export default function SignInScreen() {
         ],
       });
 
-      // Store Apple user locally
+      // TODO: Integrate with Supabase Apple OAuth
+      // For now, store locally (not recommended for production)
       const userData = {
         id: credential.user,
-        name: credential.fullName?.givenName || credential.fullName?.nickname || 'Apple User',
-        email: credential.email || 'user@privaterelay.appleid.com',
-        provider: 'apple',
+        name:
+          credential.fullName?.givenName ||
+          credential.fullName?.nickname ||
+          "Apple User",
+        email: credential.email || "user@privaterelay.appleid.com",
+        provider: "apple",
         loggedInAt: new Date().toISOString(),
       };
-      await AsyncStorage.setItem('user', JSON.stringify(userData));
-      Alert.alert('Success', `Welcome ${userData.name}!`);
-      router.replace('/home');
+      await AsyncStorage.setItem("user", JSON.stringify(userData));
+      Alert.alert("Success", `Welcome ${userData.name}!`);
+      router.replace("/home");
     } catch (error: any) {
-      if (error.code !== 'ERR_CANCELED') {
-        Alert.alert('Error', 'Apple Sign-In failed. Please try again.');
+      if (error.code !== "ERR_CANCELED") {
+        Alert.alert("Error", "Apple Sign-In failed. Please try again.");
       }
     } finally {
       setAppleLoading(false);
@@ -221,9 +308,13 @@ export default function SignInScreen() {
   };
 
   const handleForgotPassword = () => {
-    Alert.alert("Reset Password", "Password reset link will be sent to your email.");
+    Alert.alert(
+      "Reset Password",
+      "Password reset link will be sent to your email.",
+    );
   };
 
+  // ----- RENDER -----
   return (
     <Animated.View
       style={[
@@ -259,7 +350,7 @@ export default function SignInScreen() {
       )}
 
       {/* Email */}
-      <Text style={styles.label}>Email or Phone Number</Text>
+      <Text style={styles.label}>Email</Text>
       <View style={[styles.inputBox, errors.email && styles.inputError]}>
         <Icon name="envelope" size={16} color="#999" style={styles.inputIcon} />
         <TextInput
@@ -299,7 +390,9 @@ export default function SignInScreen() {
           <Icon name={secure ? "eye" : "eye-slash"} size={18} color="#777" />
         </TouchableOpacity>
       </View>
-      {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+      {errors.password && (
+        <Text style={styles.errorText}>{errors.password}</Text>
+      )}
 
       <View style={styles.row}>
         <TouchableOpacity
@@ -318,12 +411,19 @@ export default function SignInScreen() {
       </View>
 
       <TouchableOpacity
-        style={[styles.button, isLoading && styles.buttonDisabled]}
+        style={[
+          styles.button,
+          (isLoading || googleLoading) && styles.buttonDisabled,
+        ]}
         onPress={handleSignIn}
         activeOpacity={0.8}
-        disabled={isLoading}
+        disabled={isLoading || googleLoading}
       >
-        {isLoading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Sign In</Text>}
+        {isLoading ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <Text style={styles.buttonText}>Sign In</Text>
+        )}
       </TouchableOpacity>
 
       <View style={styles.dividerRow}>
@@ -333,16 +433,27 @@ export default function SignInScreen() {
       </View>
 
       <View style={styles.socialRow}>
-        <TouchableOpacity style={styles.socialBtn} activeOpacity={0.7} onPress={handleGoogleLogin}>
-          <Icon name="google" size={18} color="#DB4437" />
-          <Text style={styles.socialLabel}>Google</Text>
+        <TouchableOpacity
+          style={styles.socialBtn}
+          activeOpacity={0.7}
+          onPress={handleGoogleLogin}
+          disabled={isLoading || googleLoading}
+        >
+          {googleLoading ? (
+            <ActivityIndicator size="small" color="#DB4437" />
+          ) : (
+            <>
+              <Icon name="google" size={18} color="#DB4437" />
+              <Text style={styles.socialLabel}>Google</Text>
+            </>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.socialBtn}
           activeOpacity={0.7}
           onPress={handleAppleLogin}
-          disabled={appleLoading}
+          disabled={appleLoading || isLoading || googleLoading}
         >
           {appleLoading ? (
             <ActivityIndicator size="small" color="#000000" />
@@ -365,7 +476,9 @@ export default function SignInScreen() {
   );
 }
 
+// ----- STYLES (unchanged) -----
 const styles = StyleSheet.create({
+  // ... (keep your existing styles exactly as they were)
   container: {
     flex: 1,
     backgroundColor: "#F4F4F4",

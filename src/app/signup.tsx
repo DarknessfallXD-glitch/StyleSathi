@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { supabase } from "../lib/supabase";
-import { getUserProfile } from "../services/api/user";  // 👈 new import
+import { getUserProfile } from "../services/api/user";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -41,59 +41,30 @@ export default function SignUpScreen() {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(30));
 
-  // Google Sign-Up
+  // 👇 Generate a random nonce once, stable across renders
+  // const [googleNonce] = useState(() =>
+  //   Math.random().toString(36).substring(2, 15)
+  // );
+
+  // ----- Google OAuth with nonce -----
   const [request, response, promptAsync] = Google.useAuthRequest({
     androidClientId:
       "478569591036-6ss1sbl1mqhuggtdm5ekun5o188ojdsl.apps.googleusercontent.com",
     iosClientId:
       "478569591036-4stvl2r1r8snildbnmgvlhajn2b3l12a.apps.googleusercontent.com",
     webClientId:
-      "478569591036-v0bj4glv8o9v7q66s7ovp86lfki0n66k.apps.googleusercontent.com",
-    redirectUri: makeRedirectUri({
-      scheme: "com.darknessfallxd.stylesathi",
-    }),
+      "478569591036-pva3u54atkvh8cr8sm7lds2bsj5dokvl.apps.googleusercontent.com",
+    redirectUri: makeRedirectUri({ scheme: "com.darknessfallxd.stylesathi" }),
   });
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, tension: 50, friction: 7, useNativeDriver: true }),
     ]).start();
   }, []);
 
-  // Check if user is already logged in
-  useEffect(() => {
-    checkSession();
-  }, []);
-
-  const checkSession = async () => {
-    try {
-      if (!supabase) {
-        console.log("Supabase not configured yet");
-        return;
-      }
-      
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) throw error;
-      
-      if (session) {
-        router.replace('/home');
-      }
-    } catch (error: any) {
-      // Silently fail - user just needs to sign up
-      console.log("Session check failed:", error.message);
-    }
-  };
-
+  // ----- Validation & Error Helpers -----
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
@@ -107,136 +78,114 @@ export default function SignUpScreen() {
       confirmPassword?: string;
     } = {};
 
-    // Name validation
-    if (!name.trim()) {
-      newErrors.name = "Full name is required";
-    } else if (name.trim().length < 2) {
-      newErrors.name = "Name must be at least 2 characters";
-    }
+    if (!name.trim()) newErrors.name = "Full name is required";
+    else if (name.trim().length < 2) newErrors.name = "Name must be at least 2 characters";
 
-    // Email validation
-    if (!email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!validateEmail(email)) {
-      newErrors.email = "Please enter a valid email address";
-    }
+    if (!email.trim()) newErrors.email = "Email is required";
+    else if (!validateEmail(email)) newErrors.email = "Please enter a valid email address";
 
-    // Password validation
-    if (!password) {
-      newErrors.password = "Password is required";
-    } else if (password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    } else if (password.length > 50) {
-      newErrors.password = "Password must be less than 50 characters";
-    }
+    if (!password) newErrors.password = "Password is required";
+    else if (password.length < 6) newErrors.password = "Password must be at least 6 characters";
+    else if (password.length > 50) newErrors.password = "Password must be less than 50 characters";
 
-    // Confirm password validation
-    if (!confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-    } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
+    if (!confirmPassword) newErrors.confirmPassword = "Please confirm your password";
+    else if (password !== confirmPassword) newErrors.confirmPassword = "Passwords do not match";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Helper function to handle Supabase connection errors
   const handleSupabaseError = (error: any): string => {
     console.error("Supabase error:", error);
-    
-    // Network/Connection errors
     if (!error) return "Unable to connect. Please check your internet.";
     if (error.message === "Failed to fetch") return "Network error. Please check your connection.";
     if (error.message?.includes("network")) return "Network error. Please try again.";
     if (error.message?.includes("timeout")) return "Connection timeout. Please try again.";
-    
-    // Supabase configuration errors
     if (error.message?.includes("Invalid API key")) return "Authentication service is not configured yet.";
     if (error.message?.includes("Invalid JWT")) return "Service configuration issue. Please contact support.";
     if (error.message?.includes("URL is required")) return "Backend connection not configured.";
-    
-    // Auth errors
     if (error.message?.includes("already registered")) return "An account with this email already exists.";
     if (error.message?.includes("Password should be at least 6 characters")) return "Password must be at least 6 characters.";
     if (error.message?.includes("Email not confirmed")) return "Please verify your email before signing in.";
-    
-    // Rate limiting
     if (error.message?.includes("rate limit")) return "Too many attempts. Please try again later.";
-    
-    // Default fallback
     return "Something went wrong. Please try again.";
   };
 
-  // Email/Password Sign Up with Supabase
+  // ----- SYNC HELPER -----
+  const syncUserWithBackend = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        await AsyncStorage.setItem("authToken", session.access_token);
+        const userProfile = await getUserProfile();
+        console.log("User synced with backend:", userProfile);
+        return userProfile;
+      }
+      return null;
+    } catch (err) {
+      console.error("Backend sync failed:", err);
+      return null;
+    }
+  };
+
+  // ----- EMAIL SIGN-UP -----
   const handleSignUp = async () => {
     setErrors({});
     setConnectionError(null);
-
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsLoading(true);
 
     try {
-      // Check if supabase is available
-      if (!supabase || !supabase.auth) {
-        throw new Error("Authentication service is not available");
-      }
-      
       const { data, error } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password: password,
-        options: {
-          data: {
-            full_name: name.trim(),
-          },
-        },
+        options: { data: { full_name: name.trim() } },
       });
 
-      if (error) throw error;
-
-      // Check if user already exists (identities array empty means user exists but not confirmed)
-      if (data.user?.identities?.length === 0) {
-        Alert.alert("Account Exists", "An account with this email already exists. Please sign in.");
-        router.replace("/signin");
-        return;
+      if (error) {
+        if (error.message?.includes("already registered")) {
+          Alert.alert("Account Exists", "An account with this email already exists. Please sign in.");
+          router.replace("/signin");
+          return;
+        }
+        throw error;
       }
 
-      // Store user data locally (basic info)
-      const userData = {
-        id: data.user?.id,
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        provider: "email",
-        registeredAt: new Date().toISOString(),
-        isAuthenticated: !!data.session, // true if we have a session
-      };
-
-      await AsyncStorage.setItem("user", JSON.stringify(userData));
-
-      console.log("✅ Sign up successful for:", email);
-
-      // 🔥 NEW: If we have a session (email confirmation is disabled), sync with backend immediately
       if (data.session) {
-        const token = data.session.access_token;
-        await AsyncStorage.setItem('authToken', token);
-        // Call backend to create/update user in the database
-        const userProfile = await getUserProfile();
-        console.log('User synced with backend:', userProfile);
-        Alert.alert('Welcome!', `Account created for ${userProfile.email}`);
-        router.replace('/home');
+        // New user – check creation time
+        const createdAt = new Date(data.user!.created_at).getTime();
+        const now = Date.now();
+        const isNewUser = (now - createdAt) < 10000;
+
+        if (!isNewUser) {
+          Alert.alert("Account Exists", "An account with this email already exists. Please sign in.");
+          router.replace("/signin");
+          return;
+        }
+
+        const userData = {
+          id: data.user?.id,
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          provider: "email",
+          registeredAt: new Date().toISOString(),
+          isAuthenticated: true,
+        };
+        await AsyncStorage.setItem("user", JSON.stringify(userData));
+        await syncUserWithBackend();
+
+        Alert.alert("Success", "Account created!");
+        router.replace("/personalize1");
       } else {
-        // No session – email confirmation required
         Alert.alert(
           "Success",
           "Account created! Please check your email to confirm your account before signing in."
         );
-        router.replace("/personalize1");
+        router.replace("/signin");
       }
     } catch (error: any) {
-      console.error("❌ Sign up error:", error);
+      console.error("Sign up error:", error);
       const errorMessage = handleSupabaseError(error);
       setConnectionError(errorMessage);
       Alert.alert("Sign Up Failed", errorMessage);
@@ -245,59 +194,77 @@ export default function SignUpScreen() {
     }
   };
 
-  // Google Sign-Up with Supabase
+  // ----- GOOGLE SIGN-UP -----
   const handleGoogleSignUp = () => {
-    setConnectionError(null);
     setGoogleLoading(true);
     promptAsync();
   };
 
-  // Handle Google response
   useEffect(() => {
     if (response?.type === "success") {
-      const { authentication } = response;
+      const { authentication, params } = response;
+      const idToken = authentication?.idToken || params?.id_token;
 
-      supabase.auth.signInWithIdToken({
-        provider: 'google',
-        token: authentication?.idToken!,
-      }).then(async ({ data, error }) => {
-        if (error) throw error;
-        
-        if (data?.user) {
-          // Store user data locally
+      if (!idToken) {
+        Alert.alert("Error", "No ID token received from Google");
+        setGoogleLoading(false);
+        return;
+      }
+
+      supabase.auth
+        .signInWithIdToken({
+          provider: "google",
+          token: idToken,   // 👈 use the same nonce
+        })
+        .then(async ({ data, error }) => {
+          if (error) {
+            if (error.message?.includes("User already registered")) {
+              const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+              if (sessionError) throw sessionError;
+              if (sessionData.session) {
+                data = sessionData;
+              } else {
+                throw new Error("User exists but no session");
+              }
+            } else {
+              throw error;
+            }
+          }
+
+          if (!data?.user) throw new Error("No user data returned");
+
           const userData = {
-            id: data.user?.id,
-            email: data.user?.email,
-            name: data.user?.user_metadata?.full_name || data.user?.email?.split("@")[0],
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.user_metadata?.full_name || data.user.email?.split("@")[0],
             provider: "google",
             registeredAt: new Date().toISOString(),
             isAuthenticated: true,
           };
           await AsyncStorage.setItem("user", JSON.stringify(userData));
 
-          // 🔥 Sync with backend using the session token
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.access_token) {
-            await AsyncStorage.setItem('authToken', session.access_token);
-            await getUserProfile(); // backend creates/updates user
+          const token = data.session?.access_token;
+          if (token) {
+            await AsyncStorage.setItem("authToken", token);
+            await getUserProfile();
           }
 
           Alert.alert("Success", `Welcome ${userData.name}!`);
           router.replace("/personalize1");
-        } else {
-          throw new Error("No user data returned");
-        }
-        setGoogleLoading(false);
-      }).catch((err) => {
-        console.error(err);
-        const errorMessage = handleSupabaseError(err);
-        setConnectionError(errorMessage);
-        Alert.alert("Sign Up Failed", errorMessage);
-        setGoogleLoading(false);
-      });
+          setGoogleLoading(false);
+        })
+        .catch((err) => {
+          console.error("Google sign-in error:", err);
+          setConnectionError(err.message);
+          Alert.alert("Sign Up Failed", err.message);
+          setGoogleLoading(false);
+        });
     } else if (response?.type === "error") {
+      console.error("Google OAuth error:", response.error);
       setGoogleLoading(false);
-      console.log("Google sign up cancelled or failed");
+    } else if (response?.type === "cancel") {
+      console.log("Google sign-in cancelled");
+      setGoogleLoading(false);
     }
   }, [response]);
 
@@ -305,16 +272,9 @@ export default function SignUpScreen() {
     Alert.alert("Coming Soon", "Apple Sign-Up will be available soon!");
   };
 
+  // ----- RENDER (unchanged) -----
   return (
-    <Animated.View
-      style={[
-        styles.container,
-        {
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }],
-        },
-      ]}
-    >
+    <Animated.View style={[styles.container, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.replace("/signin")}>
@@ -329,13 +289,9 @@ export default function SignUpScreen() {
         <Icon name="bolt" size={26} color="#FFCC00" />
       </View>
 
-      {/* Title */}
       <Text style={styles.title}>Create Account</Text>
-      <Text style={styles.subtitle}>
-        Join StyleSathy and start your virtual styling journey.
-      </Text>
+      <Text style={styles.subtitle}>Join StyleSathy and start your virtual styling journey.</Text>
 
-      {/* Show connection error if any */}
       {connectionError && (
         <View style={styles.connectionErrorContainer}>
           <Icon name="exclamation-triangle" size={16} color="#FF4444" />
@@ -404,15 +360,11 @@ export default function SignUpScreen() {
           <Icon name={secure ? "eye" : "eye-slash"} size={18} color="#777" />
         </TouchableOpacity>
       </View>
-      {errors.password && (
-        <Text style={styles.errorText}>{errors.password}</Text>
-      )}
+      {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
       {/* Confirm Password */}
       <Text style={styles.label}>Confirm Password</Text>
-      <View
-        style={[styles.inputBox, errors.confirmPassword && styles.inputError]}
-      >
+      <View style={[styles.inputBox, errors.confirmPassword && styles.inputError]}>
         <Icon name="lock" size={16} color="#999" style={styles.inputIcon} />
         <TextInput
           placeholder="Confirm your password"
@@ -423,38 +375,24 @@ export default function SignUpScreen() {
           value={confirmPassword}
           onChangeText={(text) => {
             setConfirmPassword(text);
-            if (errors.confirmPassword)
-              setErrors({ ...errors, confirmPassword: undefined });
+            if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: undefined });
             if (connectionError) setConnectionError(null);
           }}
         />
         <TouchableOpacity onPress={() => setConfirmSecure(!confirmSecure)}>
-          <Icon
-            name={confirmSecure ? "eye" : "eye-slash"}
-            size={18}
-            color="#777"
-          />
+          <Icon name={confirmSecure ? "eye" : "eye-slash"} size={18} color="#777" />
         </TouchableOpacity>
       </View>
-      {errors.confirmPassword && (
-        <Text style={styles.errorText}>{errors.confirmPassword}</Text>
-      )}
+      {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
 
       {/* Sign Up Button */}
       <TouchableOpacity
-        style={[
-          styles.button,
-          (isLoading || googleLoading) && styles.buttonDisabled,
-        ]}
+        style={[styles.button, (isLoading || googleLoading) && styles.buttonDisabled]}
         onPress={handleSignUp}
         activeOpacity={0.8}
         disabled={isLoading || googleLoading}
       >
-        {isLoading ? (
-          <ActivityIndicator color="#FFFFFF" />
-        ) : (
-          <Text style={styles.buttonText}>Create Account</Text>
-        )}
+        {isLoading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Create Account</Text>}
       </TouchableOpacity>
 
       {/* Divider */}
@@ -472,9 +410,7 @@ export default function SignUpScreen() {
           onPress={handleGoogleSignUp}
           disabled={isLoading || googleLoading}
         >
-          {googleLoading ? (
-            <ActivityIndicator size="small" color="#DB4437" />
-          ) : (
+          {googleLoading ? <ActivityIndicator size="small" color="#DB4437" /> : (
             <>
               <Icon name="google" size={18} color="#DB4437" />
               <Text style={styles.socialLabel}>Google</Text>
@@ -482,6 +418,8 @@ export default function SignUpScreen() {
           )}
         </TouchableOpacity>
 
+        {/* Apple button (commented out) */}
+        {/* 
         <TouchableOpacity
           style={styles.socialBtn}
           activeOpacity={0.7}
@@ -490,20 +428,19 @@ export default function SignUpScreen() {
         >
           <Icon name="apple" size={18} color="#000000" />
           <Text style={styles.socialLabel}>Apple</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> 
+        */}
       </View>
 
-      {/* Footer */}
       <Text style={styles.footer}>
-        Already have an account?{" "}
-        <Text style={styles.link} onPress={() => router.replace("/signin")}>
-          Sign In
-        </Text>
+        Already have an account?{' '}
+        <Text style={styles.link} onPress={() => router.replace("/signin")}>Sign In</Text>
       </Text>
     </Animated.View>
   );
 }
 
+// ----- STYLES (unchanged) -----
 const styles = StyleSheet.create({
   container: {
     flex: 1,

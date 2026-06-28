@@ -10,6 +10,7 @@ import {
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { updatePreferences } from '../services/api/preferences';
 
 export default function LanguageScreen() {
   const router = useRouter();
@@ -45,18 +46,11 @@ export default function LanguageScreen() {
       const profilePhoto = await getProfilePhoto();
       const selectedStyles = await getSelectedStyles();
       
-      // COLLECT ALL USER PREFERENCES IN JSON FORMAT
+      // Build preferences JSON
       const userPreferences = {
-        // Step 1: Camera/Photo
-        profilePhoto: profilePhoto,
-        
-        // Step 3: Style Preferences  
+        profilePhoto: profilePhoto || null,
         selectedStyles: selectedStyles,
-        
-        // Step 4: Language
-        selectedLanguage: selectedLanguage,
-        
-        // Metadata
+        language: selectedLanguage,
         onboardingCompleted: true,
         completedAt: new Date().toISOString(),
         deviceInfo: {
@@ -65,20 +59,14 @@ export default function LanguageScreen() {
         },
       };
       
-      // LOG THE JSON - This is what you send to backend
-      console.log('========== USER PREFERENCES JSON ==========');
-      console.log(JSON.stringify(userPreferences, null, 2));
-      console.log('===========================================');
+      // Send to backend
+      await updatePreferences(userPreferences);
       
-      // Save language preference to AsyncStorage
+      // Also save language locally for quick access
       await AsyncStorage.setItem('selectedLanguage', selectedLanguage);
       
-      // Show summary to user
-      Alert.alert(
-        'Preferences Saved',
-        `Language: ${selectedLanguage === 'nepali' ? 'नेपाली' : 'English'}\nStyles: ${selectedStyles.join(', ') || 'None selected'}\n\nCheck console for full JSON`,
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Success', 'Your preferences have been saved!');
+      router.replace('./home');
       
     } catch (error) {
       console.error('Error saving preferences:', error);
@@ -86,9 +74,6 @@ export default function LanguageScreen() {
     } finally {
       setIsLoading(false);
     }
-    
-    // Navigate to home
-    router.replace('./home');
   };
 
   const languages = [

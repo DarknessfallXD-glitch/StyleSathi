@@ -12,6 +12,7 @@ import {
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function UploadPhotoScreen() {
   const router = useRouter();
@@ -26,8 +27,11 @@ export default function UploadPhotoScreen() {
         const file = e.target.files[0];
         if (file) {
           const reader = new FileReader();
-          reader.onload = (event) => {
-            setProfileImage(event.target?.result as string);
+          reader.onload = async (event) => {
+            const uri = event.target?.result as string;
+            setProfileImage(uri);
+            // Save to AsyncStorage
+            await AsyncStorage.setItem('profilePhoto', uri);
           };
           reader.readAsDataURL(file);
         }
@@ -37,7 +41,6 @@ export default function UploadPhotoScreen() {
     }
 
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
     if (!permission.granted) {
       Alert.alert('Permission Required', 'Please allow access to your photos');
       return;
@@ -51,9 +54,23 @@ export default function UploadPhotoScreen() {
     });
 
     if (!result.canceled) {
-      setProfileImage(result.assets[0].uri);
+      const uri = result.assets[0].uri;
+      setProfileImage(uri);
+      // Save to AsyncStorage
+      await AsyncStorage.setItem('profilePhoto', uri);
     }
   };
+
+  // Also load saved photo when screen mounts
+  React.useEffect(() => {
+    const loadPhoto = async () => {
+      const saved = await AsyncStorage.getItem('profilePhoto');
+      if (saved) {
+        setProfileImage(saved);
+      }
+    };
+    loadPhoto();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -61,17 +78,16 @@ export default function UploadPhotoScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-              <TouchableOpacity onPress={() => router.replace('./personalize1')}>
-                          <Text style={styles.back}>←</Text>
-                        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.replace('./personalize1')}>
+          <Text style={styles.back}>←</Text>
+        </TouchableOpacity>
         <Text style={styles.stepText}>STEP 2 OF 4</Text>
-              <View style={styles.progressRow}>
-                <View style={styles.progressDot} />
-                <View style={styles.progressActive} />
-                <View style={styles.progressDot} />
-                <View style={styles.progressDot} />
-              </View>
-        
+        <View style={styles.progressRow}>
+          <View style={styles.progressDot} />
+          <View style={styles.progressActive} />
+          <View style={styles.progressDot} />
+          <View style={styles.progressDot} />
+        </View>
 
         <Text style={styles.title}>Upload Your Photo</Text>
         <Text style={styles.subtitle}>
@@ -86,7 +102,6 @@ export default function UploadPhotoScreen() {
               <Image source={{ uri: profileImage }} style={styles.profileImage} />
             ) : (
               <View style={styles.iconContainer}>
-                {/* Diamond icon for luxury jewelry vibe */}
                 <Icon name="user-o" size={75} color="#CCCCCC" />
               </View>
             )}
