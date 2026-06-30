@@ -41,20 +41,18 @@ export default function SignUpScreen() {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(30));
 
-  // 👇 Generate a random nonce once, stable across renders
-  // const [googleNonce] = useState(() =>
-  //   Math.random().toString(36).substring(2, 15)
-  // );
-
-  // ----- Google OAuth with nonce -----
+  // ----- Google OAuth with id_token -----
   const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId:
-      "478569591036-6ss1sbl1mqhuggtdm5ekun5o188ojdsl.apps.googleusercontent.com",
-    iosClientId:
-      "478569591036-4stvl2r1r8snildbnmgvlhajn2b3l12a.apps.googleusercontent.com",
-    webClientId:
-      "478569591036-pva3u54atkvh8cr8sm7lds2bsj5dokvl.apps.googleusercontent.com",
-    redirectUri: makeRedirectUri({ scheme: "com.darknessfallxd.stylesathi" }),
+    androidClientId: "478569591036-6ss1sbl1mqhuggtdm5ekun5o188ojdsl.apps.googleusercontent.com",
+    iosClientId: "478569591036-4stvl2r1r8snildbnmgvlhajn2b3l12a.apps.googleusercontent.com",
+    webClientId: "478569591036-pva3u54atkvh8cr8sm7lds2bsj5dokvl.apps.googleusercontent.com",
+    // 1. Ask for standard user profile scopes
+    scopes: ['openid', 'profile', 'email'],
+    responseType: 'id_token', 
+    // 2. Let Expo handle the dynamic redirect based on platform
+    redirectUri: makeRedirectUri({
+      scheme: "com.darknessfallxd.stylesathi" 
+    }),
   });
 
   useEffect(() => {
@@ -204,6 +202,7 @@ export default function SignUpScreen() {
     if (response?.type === "success") {
       const { authentication, params } = response;
       const idToken = authentication?.idToken || params?.id_token;
+      console.log("🔹 idToken:", idToken);
 
       if (!idToken) {
         Alert.alert("Error", "No ID token received from Google");
@@ -214,12 +213,13 @@ export default function SignUpScreen() {
       supabase.auth
         .signInWithIdToken({
           provider: "google",
-          token: idToken,   // 👈 use the same nonce
+          token: idToken,
         })
         .then(async ({ data, error }) => {
           if (error) {
             if (error.message?.includes("User already registered")) {
               const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+              console.log("Session data:", sessionData);
               if (sessionError) throw sessionError;
               if (sessionData.session) {
                 data = sessionData;
@@ -265,7 +265,7 @@ export default function SignUpScreen() {
     } else if (response?.type === "cancel") {
       console.log("Google sign-in cancelled");
       setGoogleLoading(false);
-    }
+    } 
   }, [response]);
 
   const handleAppleSignUp = () => {
