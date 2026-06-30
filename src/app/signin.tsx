@@ -22,8 +22,6 @@ import { getUserProfile } from "../services/api/user";
 
 WebBrowser.maybeCompleteAuthSession();
 
-// Fixed nonce for Google (must match between request and signInWithIdToken)
-
 export default function SignInScreen() {
   const router = useRouter();
   const [secure, setSecure] = useState(true);
@@ -33,9 +31,8 @@ export default function SignInScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
-    {},
-  );
+  const [showOverlay, setShowOverlay] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [connectionError, setConnectionError] = useState<string | null>(null);
 
   const [fadeAnim] = useState(new Animated.Value(0));
@@ -49,25 +46,14 @@ export default function SignInScreen() {
       "478569591036-4stvl2r1r8snildbnmgvlhajn2b3l12a.apps.googleusercontent.com",
     webClientId:
       "478569591036-pva3u54atkvh8cr8sm7lds2bsj5dokvl.apps.googleusercontent.com",
-    redirectUri: makeRedirectUri({
-      scheme: "com.darknessfallxd.stylesathi",
-    }),
+    redirectUri: makeRedirectUri({ scheme: "com.darknessfallxd.stylesathi" }),
     responseType: "id_token",
   });
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, tension: 50, friction: 7, useNativeDriver: true }),
     ]).start();
   }, []);
 
@@ -78,9 +64,7 @@ export default function SignInScreen() {
 
   const checkSession = async () => {
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         router.replace("/home");
       }
@@ -91,44 +75,33 @@ export default function SignInScreen() {
 
   // ----- Validation -----
   const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
   };
 
   const validateForm = (): boolean => {
     const newErrors: { email?: string; password?: string } = {};
-    if (!email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!validateEmail(email)) {
-      newErrors.email = "Please enter a valid email address";
-    }
-    if (!password) {
-      newErrors.password = "Password is required";
-    } else if (password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
+    if (!email.trim()) newErrors.email = "Email is required";
+    else if (!validateEmail(email)) newErrors.email = "Please enter a valid email address";
+    if (!password) newErrors.password = "Password is required";
+    else if (password.length < 6) newErrors.password = "Password must be at least 6 characters";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // ----- Error helper (reuse from sign-up) -----
+  // ----- Error helper -----
   const handleSupabaseError = (error: any): string => {
     console.error("Supabase error:", error);
     if (!error) return "Unable to connect. Please check your internet.";
-    if (error.message === "Failed to fetch")
-      return "Network error. Please check your connection.";
-    if (error.message?.includes("network"))
-      return "Network error. Please try again.";
-    if (error.message?.includes("timeout"))
-      return "Connection timeout. Please try again.";
-    if (error.message?.includes("Invalid login credentials"))
-      return "Invalid email or password.";
-    if (error.message?.includes("Email not confirmed"))
-      return "Please verify your email before signing in.";
+    if (error.message === "Failed to fetch") return "Network error. Please check your connection.";
+    if (error.message?.includes("network")) return "Network error. Please try again.";
+    if (error.message?.includes("timeout")) return "Connection timeout. Please try again.";
+    if (error.message?.includes("Invalid login credentials")) return "Invalid email or password.";
+    if (error.message?.includes("Email not confirmed")) return "Please verify your email before signing in.";
     return "Something went wrong. Please try again.";
   };
 
-  // ----- Email/Password Sign In -----
+  // ----- Email/Password Sign In (with overlay) -----
   const handleSignIn = async () => {
     setErrors({});
     setConnectionError(null);
@@ -142,15 +115,12 @@ export default function SignInScreen() {
       });
       if (error) throw error;
 
-      // Store token and sync with backend
       const token = data.session?.access_token;
       if (token) {
         await AsyncStorage.setItem("authToken", token);
-        // Sync user with backend (creates row if missing)
         await getUserProfile();
       }
 
-      // Store user data locally
       const userData = {
         id: data.user?.id,
         email: data.user?.email,
@@ -161,6 +131,11 @@ export default function SignInScreen() {
       };
       await AsyncStorage.setItem("user", JSON.stringify(userData));
 
+      // Show overlay and delay
+      setShowOverlay(true);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      setShowOverlay(false);
       Alert.alert("Success", "Logged in successfully!");
       router.replace("/home");
     } catch (error: any) {
@@ -172,7 +147,7 @@ export default function SignInScreen() {
     }
   };
 
-  // ----- Google Sign In -----
+  // ----- Google Sign In (with overlay) -----
   const handleGoogleLogin = () => {
     setConnectionError(null);
     setGoogleLoading(true);
@@ -183,7 +158,6 @@ export default function SignInScreen() {
     if (response?.type === "success") {
       const { authentication, params } = response;
       const idToken = authentication?.idToken || params?.id_token;
-
       if (!idToken) {
         Alert.alert("Error", "No ID token received from Google");
         setGoogleLoading(false);
@@ -191,16 +165,11 @@ export default function SignInScreen() {
       }
 
       supabase.auth
-        .signInWithIdToken({
-          provider: "google",
-          token: idToken, // must match the one sent in request
-        })
+        .signInWithIdToken({ provider: "google", token: idToken })
         .then(async ({ data, error }) => {
           if (error) {
-            // If user already exists, try to get session
             if (error.message?.includes("User already registered")) {
-              const { data: sessionData, error: sessionError } =
-                await supabase.auth.getSession();
+              const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
               if (sessionError) throw sessionError;
               if (sessionData.session) {
                 data = sessionData;
@@ -211,17 +180,12 @@ export default function SignInScreen() {
               throw error;
             }
           }
-
-          if (!data?.user) {
-            throw new Error("No user data returned");
-          }
+          if (!data?.user) throw new Error("No user data returned");
 
           const userData = {
             id: data.user.id,
             email: data.user.email,
-            name:
-              data.user.user_metadata?.full_name ||
-              data.user.email?.split("@")[0],
+            name: data.user.user_metadata?.full_name || data.user.email?.split("@")[0],
             provider: "google",
             loggedInAt: new Date().toISOString(),
             isAuthenticated: true,
@@ -231,19 +195,22 @@ export default function SignInScreen() {
           const token = data.session?.access_token;
           if (token) {
             await AsyncStorage.setItem("authToken", token);
-            // Sync with backend (creates row if needed)
             await getUserProfile();
           }
 
+          // Show overlay and delay
+          setShowOverlay(true);
+          await new Promise(resolve => setTimeout(resolve, 1500));
+
+          setShowOverlay(false);
           Alert.alert("Success", `Welcome ${userData.name}!`);
           router.replace("/home");
           setGoogleLoading(false);
         })
         .catch((err) => {
           console.error("Google sign-in error:", err);
-          const errorMessage = handleSupabaseError(err);
-          setConnectionError(errorMessage);
-          Alert.alert("Login Failed", errorMessage);
+          setConnectionError(err.message);
+          Alert.alert("Login Failed", err.message);
           setGoogleLoading(false);
         });
     } else if (response?.type === "error") {
@@ -268,10 +235,7 @@ export default function SignInScreen() {
     try {
       const isAvailable = await AppleAuthentication.isAvailableAsync();
       if (!isAvailable) {
-        Alert.alert(
-          "Not Available",
-          "Apple Sign-In is not available on this device",
-        );
+        Alert.alert("Not Available", "Apple Sign-In is not available on this device");
         setAppleLoading(false);
         return;
       }
@@ -283,14 +247,9 @@ export default function SignInScreen() {
         ],
       });
 
-      // TODO: Integrate with Supabase Apple OAuth
-      // For now, store locally (not recommended for production)
       const userData = {
         id: credential.user,
-        name:
-          credential.fullName?.givenName ||
-          credential.fullName?.nickname ||
-          "Apple User",
+        name: credential.fullName?.givenName || credential.fullName?.nickname || "Apple User",
         email: credential.email || "user@privaterelay.appleid.com",
         provider: "apple",
         loggedInAt: new Date().toISOString(),
@@ -308,10 +267,7 @@ export default function SignInScreen() {
   };
 
   const handleForgotPassword = () => {
-    Alert.alert(
-      "Reset Password",
-      "Password reset link will be sent to your email.",
-    );
+    Alert.alert("Reset Password", "Password reset link will be sent to your email.");
   };
 
   // ----- RENDER -----
@@ -390,9 +346,7 @@ export default function SignInScreen() {
           <Icon name={secure ? "eye" : "eye-slash"} size={18} color="#777" />
         </TouchableOpacity>
       </View>
-      {errors.password && (
-        <Text style={styles.errorText}>{errors.password}</Text>
-      )}
+      {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
       <View style={styles.row}>
         <TouchableOpacity
@@ -411,19 +365,12 @@ export default function SignInScreen() {
       </View>
 
       <TouchableOpacity
-        style={[
-          styles.button,
-          (isLoading || googleLoading) && styles.buttonDisabled,
-        ]}
+        style={[styles.button, (isLoading || googleLoading) && styles.buttonDisabled]}
         onPress={handleSignIn}
         activeOpacity={0.8}
         disabled={isLoading || googleLoading}
       >
-        {isLoading ? (
-          <ActivityIndicator color="#FFFFFF" />
-        ) : (
-          <Text style={styles.buttonText}>Sign In</Text>
-        )}
+        {isLoading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Sign In</Text>}
       </TouchableOpacity>
 
       <View style={styles.dividerRow}>
@@ -439,9 +386,7 @@ export default function SignInScreen() {
           onPress={handleGoogleLogin}
           disabled={isLoading || googleLoading}
         >
-          {googleLoading ? (
-            <ActivityIndicator size="small" color="#DB4437" />
-          ) : (
+          {googleLoading ? <ActivityIndicator size="small" color="#DB4437" /> : (
             <>
               <Icon name="google" size={18} color="#DB4437" />
               <Text style={styles.socialLabel}>Google</Text>
@@ -455,9 +400,7 @@ export default function SignInScreen() {
           onPress={handleAppleLogin}
           disabled={appleLoading || isLoading || googleLoading}
         >
-          {appleLoading ? (
-            <ActivityIndicator size="small" color="#000000" />
-          ) : (
+          {appleLoading ? <ActivityIndicator size="small" color="#000000" /> : (
             <>
               <Icon name="apple" size={18} color="#000000" />
               <Text style={styles.socialLabel}>Apple</Text>
@@ -467,18 +410,24 @@ export default function SignInScreen() {
       </View>
 
       <Text style={styles.footer}>
-        Don't have an account?{" "}
-        <Text style={styles.link} onPress={() => router.replace("/signup")}>
-          Sign Up
-        </Text>
+        Don't have an account?{' '}
+        <Text style={styles.link} onPress={() => router.replace("/signup")}>Sign Up</Text>
       </Text>
+
+      {/* Loading overlay */}
+      {showOverlay && (
+        <View style={styles.overlay}>
+          <ActivityIndicator size="large" color="#FFFFFF" />
+          <Text style={styles.overlayText}>Signing you in...</Text>
+        </View>
+      )}
     </Animated.View>
   );
 }
 
-// ----- STYLES (unchanged) -----
+// ----- STYLES (unchanged + overlay) -----
 const styles = StyleSheet.create({
-  // ... (keep your existing styles exactly as they were)
+  // ... your existing styles (copy from your original signin styles)
   container: {
     flex: 1,
     backgroundColor: "#F4F4F4",
@@ -665,5 +614,22 @@ const styles = StyleSheet.create({
   link: {
     color: "#FF6B8A",
     fontWeight: "600",
+  },
+  // Overlay styles
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  overlayText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    marginTop: 12,
   },
 });
